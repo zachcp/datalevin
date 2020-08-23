@@ -77,7 +77,7 @@
       (cond
         (= "latest" version)
         (str "{:paths [\"src\"]"
-          "    :deps {datalevin {:local/root \"..\"} org.lmdbjava/lmdbjava {:mvn/version \"0.8.1\"} com.taoensso/nippy {:mvn/version \"2.14.0\"}}}")
+             "    :deps {datalevin {:local/root \"..\"} org.lmdbjava/lmdbjava {:mvn/version \"0.8.1\"} com.taoensso/nippy {:mvn/version \"2.14.0\"} persistent-sorted-set {:mvn/version \"0.1.2\"}}}")
 
         (re-matches #"\d+\.\d+\.\d+" version)
         (str "{:paths [\"src\"]"

@@ -1,10 +1,8 @@
 (ns datalevin.test.pull-api
   (:require
-    #?(:cljs [cljs.test    :as t :refer-macros [is are deftest testing]]
-       :clj  [clojure.test :as t :refer        [is are deftest testing]])
-    [datalevin.core :as d]
-    [datalevin.db :as db]
-    [datalevin.test.core :as tdc]))
+    #?(:cljs [cljs.test    :as t :refer-macros [is deftest testing]]
+       :clj  [clojure.test :as t :refer        [is deftest testing]])
+    [datalevin.core :as d]))
 
 (def ^:private test-schema
   {:aka    { :db/cardinality :db.cardinality/many }
