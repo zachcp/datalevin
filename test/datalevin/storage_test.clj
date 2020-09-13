@@ -1,6 +1,7 @@
 (ns datalevin.storage-test
   (:require [datalevin.storage :as sut]
             [datalevin.bits :as b]
+            [datalevin.util :as u]
             [datalevin.constants :as c]
             [datalevin.datom :as d]
             [clojure.test.check.generators :as gen]
@@ -17,8 +18,8 @@
 
 (defn store-test-fixture
   [f]
-  (let [dir (str "/tmp/store-test-" (UUID/randomUUID))]
-    (with-redefs [store (sut/open nil dir)]
+  (let [dir (u/tmp-dir (str "store-test-" (UUID/randomUUID)))]
+    (with-redefs [store (sut/open dir)]
       (f)
       (sut/close store)
       (b/delete-files dir))))
@@ -118,7 +119,7 @@
     (is (= 1 (sut/datom-count store c/vae)))
     (sut/close store)
     (is (sut/closed? store))
-    (let [store (sut/open nil dir)]
+    (let [store (sut/open dir)]
       (is (= [d1] (sut/slice store :eav d1 d1)))
       (sut/load-datoms store [(d/delete d1)])
       (is (= 1 (sut/datom-count store c/eav)))
@@ -129,7 +130,7 @@
           p3    {:db/valueType :db.type/long}
           s3    (assoc s2 d (merge p3 {:db/aid 4}))
           s4    (assoc s3 :f/g {:db/aid 5 :db/valueType :db.type/string})
-          store (sut/open {d p3} dir)]
+          store (sut/open dir {d p3})]
       (is (= s3 (sut/schema store)))
       (sut/set-schema store {:f/g {:db/valueType :db.type/string}})
       (is (= s4 (sut/schema store))))))
@@ -137,22 +138,36 @@
 (deftest schema-test
   (let [s     {:a {:db/valueType :db.type/string}
                :b {:db/valueType :db.type/long}}
-        dir   (str "/tmp/datalevin-schema-test-" (UUID/randomUUID))
-        store (sut/open s dir)
+        dir   (u/tmp-dir (str "datalevin-schema-test-" (UUID/randomUUID)))
+        store (sut/open dir s)
         s1    (sut/schema store)]
     (sut/close store)
     (is (sut/closed? store))
-    (let [store (sut/open s dir)]
+    (let [store (sut/open dir s)]
       (is (= s1 (sut/schema store))))))
 
-(deftest giants-test
+(deftest giants-string-test
   (let [schema {:a {:db/valueType :db.type/string}}
-        dir    (str "/tmp/datalevin-giants-test-" (UUID/randomUUID))
-        store  (sut/open schema dir)
+        dir    (u/tmp-dir (str "datalevin-giants-str-test-" (UUID/randomUUID)))
+        store  (sut/open dir schema)
         v      (apply str (repeat 10000 (UUID/randomUUID)))
         d      (d/datom c/e0 :a v)]
     (sut/load-datoms store [d])
-    (is (= [d] (sut/fetch store d)))))
+    (is (= [d] (sut/fetch store d)))
+    (is (= [d] (sut/slice store :eavt
+                          (d/datom c/e0 :a c/v0)
+                          (d/datom c/e0 :a c/vmax))))))
+
+(deftest giants-data-test
+  (let [dir    (u/tmp-dir (str "datalevin-giants-data-test-" (UUID/randomUUID)))
+        store  (sut/open dir)
+        v      (apply str (repeat 10000 (UUID/randomUUID)))
+        d      (d/datom c/e0 :a v)]
+    (sut/load-datoms store [d])
+    (is (= [d] (sut/fetch store d)))
+    (is (= [d] (sut/slice store :eavt
+                          (d/datom c/e0 :a c/v0)
+                          (d/datom c/e0 :a c/vmax))))))
 
 (deftest false-value-test
   (let [d (d/datom c/e0 :a false)]

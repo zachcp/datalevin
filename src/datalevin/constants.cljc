@@ -12,7 +12,9 @@
 (def ^:const emax  0x7FFFFFFF)
 (def ^:const txmax 0x7FFFFFFF)
 (def ^:const implicit-schema
-  {:db/ident {:db/unique :db.unique/identity :db/aid 0}})
+  {:db/ident {:db/unique    :db.unique/identity
+              :db/valueType :db.type/keyword
+              :db/aid       0}})
 
 (def ^:const v0    :db.value/sysMin)
 (def ^:const vmax  :db.value/sysMax)
@@ -30,6 +32,8 @@
 (def ^:const +val-prefix-size+  498)  ; - eid - aid - s
 (def ^:const +val-bytes-wo-hdr+ 496)  ; - hdr - 1 byte TBD
 (def ^:const +val-bytes-trunc+  491)  ; - hsh - tr
+
+(def ^:const +id-bytes+ Long/BYTES)
 
 ;; value headers
 (def ^:const type-long-neg (unchecked-byte 0xC0))
@@ -62,8 +66,12 @@
                  ba))
 (def min-bytes (byte-array 0))
 
+(def ^:const overflown :overflown-key)
 (def ^:const normal 0)
 (def ^:const gt0 1)
+
+(def ^:const index-types #{:eavt :eav :aev :aevt :ave :avet :vae :vaet})
+
 
 ;; dbi-names
 (def ^:const eav "datalevin/eav")

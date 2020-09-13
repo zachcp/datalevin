@@ -7,7 +7,7 @@
             [taoensso.nippy :as nippy])
   (:import [java.io File DataInput DataOutput]
            [java.nio.charset StandardCharsets]
-           [java.util Arrays UUID]
+           [java.util Arrays UUID Date]
            [java.nio ByteBuffer]
            [datalevin.datom Datom]))
 
@@ -130,9 +130,9 @@
       (bit-flip (Float/floatToRawIntBits x) float-sign-idx))))
 
 (defn- put-float
-  [^ByteBuffer bb n]
+  [^ByteBuffer bb x]
   (check-buffer-overflow Float/BYTES (.remaining bb))
-  (.putInt bb (encode-float n)))
+  (.putInt bb (encode-float x)))
 
 (defn- encode-double
   [^double x]
@@ -143,9 +143,9 @@
       (bit-flip (Double/doubleToRawLongBits x) double-sign-idx))))
 
 (defn- put-double
-  [^ByteBuffer bb n]
+  [^ByteBuffer bb x]
   (check-buffer-overflow Double/BYTES (.remaining bb))
-  (.putLong bb (encode-double n)))
+  (.putLong bb (encode-double x)))
 
 (defn- put-int
   [^ByteBuffer bb n]
@@ -172,7 +172,7 @@
   "measure size of x in number of bytes"
   [x]
   (cond
-    (bytes? x)         (alength ^bytes x)
+    (bytes? x)         (inc (alength ^bytes x))
     (int? x)           8
     (instance? Byte x) 1
     :else              (alength ^bytes (nippy/fast-freeze x))))
@@ -355,7 +355,7 @@
                                     Float/POSITIVE_INFINITY val))
     -10 (put-double bf (wrap-extrema val Double/NEGATIVE_INFINITY
                                      Double/POSITIVE_INFINITY val))
-    -9  (put-long bf (wrap-extrema val 0 Long/MAX_VALUE val))
+    -9  (put-long bf (wrap-extrema val 0 Long/MAX_VALUE (.getTime ^Date val)))
     -8  (put-long bf (wrap-extrema val c/e0 Long/MAX_VALUE val))
     -7  (put-uuid bf (wrap-extrema val c/min-uuid c/max-uuid val))
     -3  (put-byte bf (wrap-extrema val c/false-value c/true-value
@@ -413,8 +413,10 @@
   bs)
 
 (defn- get-string
-  [^ByteBuffer bf ^long post-v]
-  (String. ^bytes (get-bytes-val bf post-v)))
+  ([^ByteBuffer bf]
+   (String. ^bytes (get-bytes bf)))
+  ([^ByteBuffer bf ^long post-v]
+   (String. ^bytes (get-bytes-val bf post-v))))
 
 (defn- get-key-sym-str
   [^ByteBuffer bf ^long post-v]
@@ -512,48 +514,142 @@
   (let [^bytes bs (get-bytes bf)]
     (-> bs String. keyword)))
 
+(defn- raw-header
+  [v t]
+  (case t
+    :keyword c/type-keyword
+    :symbol  c/type-symbol
+    :string  c/type-string
+    :boolean c/type-boolean
+    :float   c/type-float
+    :double  c/type-double
+    :instant c/type-instant
+    :uuid    c/type-uuid
+    :bytes   c/type-bytes
+    :long    (long-header v)
+    nil))
+
 (defn put-buffer
-  "Put the given type of data `x` in buffer `bf`, `x-type` can be one of
-  `:data` (default), `:long`, `:byte`, `:bytes`, `:datom`, `:attr` or
-  index type `:eav`, `:aev`, `:ave`, or `:vae`"
+  "Put the given type of data `x` in buffer `bf`. `x-type` can be one of
+  the following data types:
+
+    - `:data` (default), arbitrary EDN data, avoid this as keys for range queries
+    - `:string`, UTF-8 string
+    - `:int`, 32 bits integer
+    - `:long`, 64 bits integer
+    - `:id`, 64 bits integer, not prefixed with a type header
+    - `:float`, 32 bits IEEE754 floating point number
+    - `:double`, 64 bits IEEE754 floating point number
+    - `:byte`, single byte
+    - `:bytes`, byte array
+    - `:keyword`, EDN keyword
+    - `:symbol`, EDN symbol
+    - `:boolean`, `true` or `false`
+    - `:instant`, timestamp, same as `java.util.Date`
+    - `:uuid`, UUID, same as `java.util.UUID`
+
+  or one of the following Datalog specific data types
+
+    - `:datom`
+    - `:attr`
+    - `:eav`
+    - `:aev`
+    - `:ave`
+    - `:vae`
+
+  If the value is to be put in a LMDB key buffer, it must be less than
+  511 bytes."
   ([bf x]
    (put-buffer bf x :data))
   ([bf x x-type]
    (case x-type
-     :long  (put-long bf x)
-     :byte  (put-byte bf x)
-     :bytes (put-bytes bf x)
-     :attr  (put-attr bf x)
-     :datom (put-datom bf x)
-     :eav   (put-eav bf x)
-     :eavt  (put-eav bf x)
-     :aev   (put-aev bf x)
-     :aevt  (put-aev bf x)
-     :ave   (put-ave bf x)
-     :avet  (put-ave bf x)
-     :vae   (put-vae bf x)
-     :vaet  (put-vae bf x)
+     :string  (do (put-byte bf (raw-header x :string))
+                  (put-bytes bf (.getBytes ^String x StandardCharsets/UTF_8)))
+     :int     (put-int bf x)
+     :long    (do (put-byte bf (raw-header x :long))
+                  (put-long bf x))
+     :id      (put-long bf x)
+     :float   (do (put-byte bf (raw-header x :float))
+                  (put-float bf x))
+     :double  (do (put-byte bf (raw-header x :double))
+                  (put-double bf x))
+     :byte    (put-byte bf x)
+     :bytes   (do (put-byte bf (raw-header x :bytes))
+                  (put-bytes bf x))
+     :keyword (do (put-byte bf (raw-header x :keyword))
+                  (put-bytes bf (key-sym-bytes x)))
+     :symbol  (do (put-byte bf (raw-header x :symbol))
+                  (put-bytes bf (key-sym-bytes x)))
+     :boolean (do (put-byte bf (raw-header x :boolean))
+                  (put-byte bf (if x c/true-value c/false-value)))
+     :instant (do (put-byte bf (raw-header x :instant))
+                  (put-long bf (.getTime ^Date x)))
+     :uuid    (do (put-byte bf (raw-header x :uuid))
+                  (put-uuid bf x))
+     :attr    (put-attr bf x)
+     :datom   (put-datom bf x)
+     :eav     (put-eav bf x)
+     :eavt    (put-eav bf x)
+     :aev     (put-aev bf x)
+     :aevt    (put-aev bf x)
+     :ave     (put-ave bf x)
+     :avet    (put-ave bf x)
+     :vae     (put-vae bf x)
+     :vaet    (put-vae bf x)
      (put-data bf x))))
 
 (defn read-buffer
   "Get the given type of data from buffer `bf`, `v-type` can be one of
-  `:data` (default), `:long`, `:byte`, `:bytes`, `:datom`, `:attr`, or
-  index type `:eav`, `:aev`, `:ave`, or `:vae`"
+  the following data types:
+
+    - `:data` (default), arbitrary EDN data
+    - `:string`, UTF-8 string
+    - `:int`, 32 bits integer
+    - `:long`, 64 bits integer
+    - `:id`, 64 bits integer, not prefixed with a type header
+    - `:float`, 32 bits IEEE754 floating point number
+    - `:double`, 64 bits IEEE754 floating point number
+    - `:byte`, single byte
+    - `:bytes`, an byte array
+    - `:keyword`, EDN keyword
+    - `:symbol`, EDN symbol
+    - `:boolean`, `true` or `false`
+    - `:instant`, timestamp, same as `java.util.Date`
+    - `:uuid`, UUID, same as `java.util.UUID`
+
+  or one of the following Datalog specific data types
+
+    - `:datom`
+    - `:attr`
+    - `:eav`
+    - `:aev`
+    - `:ave`
+    - `:vae`"
   ([bf]
    (read-buffer bf :data))
   ([^ByteBuffer bf v-type]
    (case v-type
-     :long  (get-long bf)
-     :byte  (get-byte bf)
-     :bytes (get-bytes bf)
-     :attr  (get-attr bf)
-     :datom (get-datom bf)
-     :eav   (get-eav bf)
-     :eavt  (get-eav bf)
-     :aev   (get-aev bf)
-     :aevt  (get-aev bf)
-     :ave   (get-ave bf)
-     :avet  (get-ave bf)
-     :vae   (get-vae bf)
-     :vaet  (get-vae bf)
+     :string  (do (get-byte bf) (get-string bf))
+     :int     (get-int bf)
+     :long    (do (get-byte bf) (get-long bf))
+     :id      (get-long bf)
+     :float   (do (get-byte bf) (get-float bf))
+     :double  (do (get-byte bf) (get-double bf))
+     :byte    (get-byte bf)
+     :bytes   (do (get-byte bf) (get-bytes bf))
+     :keyword (do (get-byte bf) (get-keyword bf 0))
+     :symbol  (do (get-byte bf) (get-symbol bf 0))
+     :boolean (do (get-byte bf) (get-boolean bf))
+     :instant (do (get-byte bf) (Date. ^long (get-long bf)))
+     :uuid    (do (get-byte bf) (get-uuid bf))
+     :attr    (get-attr bf)
+     :datom   (get-datom bf)
+     :eav     (get-eav bf)
+     :eavt    (get-eav bf)
+     :aev     (get-aev bf)
+     :aevt    (get-aev bf)
+     :ave     (get-ave bf)
+     :avet    (get-ave bf)
+     :vae     (get-vae bf)
+     :vaet    (get-vae bf)
      (get-data bf))))

@@ -1,11 +1,43 @@
 # Change Log
 All notable changes to this project will be documented in this file. This change log follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
+## 0.3.6
+### Fixed
+- Add headers to key-value store keys, so that range queries work in mixed data tables
+
+## 0.3.5
+### Changed
+- Expose all data types to key-value store API [#24]
+
+## 0.3.4
+### Fixed
+- thaw error for large values of `:data` type. [#23]
+### Changed
+- portable temporary directory. [#20, thx @joinr]
+
+## 0.3.3
+### Fixed
+- Properly initialize max-eid in `core/empty-db`
+
+## 0.3.2
+### Changed
+- Add value type for `:db/ident` in implicit schema
+
+## 0.3.1
+### Changed
+- [**Breaking**] Change argument order of `core/create-conn`, `db/empty-db`
+  etc., and put `dir` in front, since it is more likely to be specified than
+  `schema` in real use, so users don't have to put `nil` for `schema`.
+
+## 0.2.19
+### Fixed
+- correct `core/update-schema`
+
 ## 0.2.18
 
 ### Fixed
 - correctly handle `false` value as `:data`
-- always clear buffer before put data in
+- always clear buffer before putting data in
 
 ## 0.2.17
 

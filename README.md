@@ -36,7 +36,9 @@ your applications for resources.
 By giving up the "database as a value" doctrine adopted by the alternatives,
 Datalevin is able to leverage caching aggressively, achieving significant query speed advantage.
 
-Independent from Datalog, Datalevin can also be used as a fast key-value store for [EDN](https://en.wikipedia.org/wiki/Extensible_Data_Notation) data. A number of optimizations are put in place. For instance, it uses a transaction pool to reuse transactions, pre-allocates read/write buffers, and so on.
+Independent from Datalog, Datalevin can also be used as a fast key-value store
+for [EDN](https://en.wikipedia.org/wiki/Extensible_Data_Notation) data, with
+support for range queries, predicate filtering and more. A number of optimizations are put in place. For instance, it uses a transaction pool to reuse transactions, pre-allocates read/write buffers, and so on.
 
 ## :tada: Usage
 
@@ -53,7 +55,7 @@ Use as a Datalog store:
                     :db/unique    :db.unique/identity}})
 
 ;; create DB and connect to it
-(def conn (d/create-conn schema "/tmp/datalevin-test"))
+(def conn (d/create-conn "/tmp/datalevin-test" schema))
 
 ;; transact some data
 ;; notice :nation is not defined in schema, so it will be treated as an EDN blob
@@ -72,43 +74,67 @@ Use as a Datalog store:
      "fred")
 ;; => #{["France"]}
 
-;; close conn
+;; retract the name attribute of an entity
+(d/transact! conn [[:db/retract 1 :name "Frege"]])
+
+;; pull the entity, now the name is gone
+(d/q '[:find (pull ?e [*])
+       :in $ ?alias
+       :where
+       [?e :aka ?alias]]
+     @conn
+     "fred")
+;; => ([{:db/id 1, :aka ["foo" "fred"], :nation "France"}])
+
+;; close DB connection
 (d/close conn)
 ```
 
 Use as a key value store:
 ```clojure
 (require '[datalevin.lmdb :as l])
+(import '[java.util Date])
 
 ;; open a key value DB
 (def db (l/open-lmdb "/tmp/lmdb-test"))
 
-;; define a table (dbi) name
-(def table "test-table")
+;; define some table (dbi) names
+(def misc-table "misc-test-table")
+(def date-table "date-test-table")
 
-;; open the table
-(l/open-dbi db table)
+;; open the tables
+(l/open-dbi db misc-table)
+(l/open-dbi db date-table)
 
 ;; transact some data, a transaction can put data into multiple tables
+;; optionally, data type can be specified to help with range query
 (l/transact db
-            [[:put table :datalevin "Hello, world!"]
-             [:put table 42 {:saying "So Long, and thanks for all the fish"
-                             :source "The Hitchhiker's Guide to the Galaxy"}]])
+            [[:put misc-table :datalevin "Hello, world!"]
+             [:put misc-table 42 {:saying "So Long, and thanks for all the fish"
+                                  :source "The Hitchhiker's Guide to the Galaxy"}]
+             [:put date-table #inst "1991-12-25" "USSR broke apart" :instant]
+             [:put date-table #inst "1989-11-09" "The fall of the Berlin Wall" :instant]])
 
 ;; get the value with the key
-(l/get-value db table :datalevin)
+(l/get-value db misc-table :datalevin)
 ;; => "Hello, world!"
-(l/get-value db table 42)
-;; => {:saying "So Long, and thanks for all the fish", :source "The Hitchhiker's Guide to the Galaxy"}
+(l/get-value db misc-table 42)
+;; => {:saying "So Long, and thanks for all the fish",
+;;     :source "The Hitchhiker's Guide to the Galaxy"}
 
 ;; delete some data
-(l/transact db [[:del table 42]])
+(l/transact db [[:del misc-table 42]])
 
 ;; now it's gone
-(l/get-value db table 42)
+(l/get-value db misc-table 42)
 ;; => nil
 
-;; close db
+;; range query, from unix epoch time to now
+(l/get-range db date-table [:all (Date. 0) (Date.)] :instant)
+;; => [[#inst "1989-11-09T00:00:00.000-00:00" "The fall of the Berlin Wall"]
+;;     [#inst "1991-12-25T00:00:00.000-00:00" "USSR broke apart"]]
+
+;; close DB
 (l/close db)
 ```
 
@@ -127,9 +153,7 @@ benchmark suite of Datascript, here is how it looks.
 
 In all benchmarked queries, Datalevin is faster than Datascript. Considering
 that we are comparing a disk store with a memory store, this result may be
-counter-intuitive. The primary reason is that Datalevin is not an immutable
-database, so it is easy to cache aggressively, whereas it may be difficult in an immutable
-database (e.g. see [this issue](https://github.com/tonsky/datascript/issues/6)). Before we introduced
+counter-intuitive. The primary reason is that Datalevin caches more aggressively, whereas Datascript chose not to do so (e.g. see [this issue](https://github.com/tonsky/datascript/issues/6)). Before we introduced
 caching in version 0.2.8, Datalevin was only faster than Datascript for single
 clause queries due to the highly efficient reads of LMDB. With caching enabled,
 Datalevin is now faster across the board. In addition, we will soon move to a
@@ -150,11 +174,11 @@ In short, Datalevin is quite capable for small or medium projects right now.
 
 These are the short term goals that we will try to reach quickly:
 
-* 0.3.0 Distributed mode with raft based replication
-* 0.4.0 New query engine with an optimizer, will be based on [Paula Gearon](https://dev.to/quoll)'s [Asami](https://github.com/threatgrid/asami) 
-* 0.5.0 Schema migration
-* 0.6.0 Query parity with Datascript: composite tuples and persisted transaction functions
-* 0.7.0 Materialized views and incremental maintenance
+* 0.4.0 Distributed mode with raft based replication
+* 0.5.0 New query engine with an optimizer, will be based on [Paula Gearon](https://dev.to/quoll)'s [Asami](https://github.com/threatgrid/asami)
+* 0.6.0 Schema migration
+* 0.7.0 Query parity with Datascript: composite tuples and persisted transaction functions
+* 0.8.0 Materialized views and incremental maintenance
 
 We welcome any suggestions on what to do next. Please file issues.
 
@@ -186,6 +210,8 @@ are applicable to Datascript.
 
 * Because keys are compared bitwise, for range queries to work as expected on an attribute, its `:db/valueType` should be specified.
 
+* Floating point `NaN` cannot be stored.
+
 * The maximum individual value size is 4GB. In practice, value size is determined by LMDB's ability to find large enough continuous space on disk and Datelevin's ability to pre-allocate off-heap buffers in JVM for them.
 
 * The total data size of a Datalevin database has the same limit as LMDB's, e.g. 128TB on a modern 64-bit machine that implements 48-bit address spaces.
@@ -206,13 +232,13 @@ If you are interested in using the dialect of Datalog pioneered by Datomic®, he
 
 * If you need features such as bi-temporal graph queries, you may try [Crux](https://github.com/juxt/crux).
 
-* If you don't mind experimental storage backend, you may try [Datahike](https://github.com/replikativ/datahike).
+* If you need a durable store with some storage choices, you may try [Datahike](https://github.com/replikativ/datahike).
 
 * There was also [Eva](https://github.com/Workiva/eva/), a distributed store, but it is no longer in active development.
 
 * If you need a simple and fast durable store with a battle tested backend, give [Datalevin](https://github.com/juji-io/datalevin) a try.
 
-Version: 0.2.18
+Version: 0.3.6
 
 ## License
 
