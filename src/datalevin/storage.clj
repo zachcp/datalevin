@@ -192,8 +192,8 @@
 (deftype Store [^LMDB lmdb
                 ^:volatile-mutable schema
                 ^:volatile-mutable attrs
-                ^:volatile-mutable ^long max-aid
-                ^:volatile-mutable ^long max-gt]
+                ^:volatile-mutable max-aid
+                ^:volatile-mutable max-gt]
   IStore
   (dir [_]
     (.-dir lmdb))
@@ -207,7 +207,7 @@
     max-gt)
 
   (advance-max-gt [_]
-    (set! max-gt (inc max-gt)))
+    (set! max-gt (inc ^long max-gt)))
 
   (max-aid [_]
     max-aid)
@@ -235,7 +235,7 @@
   (swap-attr [_ attr f x y]
     (let [o (or (schema attr)
                 (let [m {:db/aid max-aid}]
-                  (set! max-aid (inc max-aid))
+                  (set! max-aid (inc ^long max-aid))
                   m))
           p (cond
               (and x y) (f o x y)

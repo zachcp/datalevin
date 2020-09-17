@@ -3,6 +3,7 @@
    [clojure.walk]
    [clojure.data]
    [clojure.set]
+   [taoensso.timbre :as log]
    [me.tonsky.persistent-sorted-set :as set]
    [datalevin.constants :as c :refer [e0 tx0 emax txmax implicit-schema]]
    [datalevin.lru :as lru]
@@ -288,7 +289,7 @@
        :aevt    (set/sorted-set-by d/cmp-datoms-aevt)
        :avet    (set/sorted-set-by d/cmp-datoms-avet)
        :vaet    (set/sorted-set-by d/cmp-datoms-vaet)
-       :max-eid (s/init-max-eid store)
+       :max-eid (log/spy (s/init-max-eid store))
        :max-tx  tx0
        :hash    (atom 0)}))))
 
