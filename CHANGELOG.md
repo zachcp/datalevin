@@ -1,6 +1,10 @@
 # Change Log
 All notable changes to this project will be documented in this file. This change log follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
+## 0.3.8
+### Fixed
+-  Correctly handle `init-max-eid` for large values as well.
+
 ## 0.3.7
 ### Fixed
 - Fixed regression introduced by 0.3.6, where :ignore value was not considered [#25]
