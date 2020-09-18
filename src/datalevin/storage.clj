@@ -3,6 +3,7 @@
   (:require [datalevin.lmdb :as lmdb]
             [datalevin.util :as u]
             [datalevin.bits :as b]
+            ;; [taoensso.timbre :as log]
             [datalevin.constants :as c]
             [datalevin.datom :as d])
   (:import [java.util UUID]
@@ -224,8 +225,10 @@
     attrs)
 
   (init-max-eid [_]
-    (or (when-let [[r _] (lmdb/get-first lmdb c/eav [:all-back] :eav :ignore)]
-          (.-e ^Retrieved r))
+    (or (when-let [[k v] (lmdb/get-first lmdb c/eav [:all-back] :eav :id)]
+          (if (= c/overflown (.-a ^Retrieved k))
+            (.-e ^Datom (lmdb/get-value lmdb c/giants v :id :datom))
+            (.-e ^Retrieved k)))
         c/e0))
 
   (swap-attr [this attr f]
