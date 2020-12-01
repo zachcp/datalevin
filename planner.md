@@ -21,9 +21,9 @@ filtering on indices directly.
 
 More join operations will be used:
 
-* Merge join will be used if two joining relations are sorted on the join column.
+* The planner will maintain the so called interesting order information, so that merge join can be used as long as possible, to exploit the sorted nature of range scans on the indices. 
 
-* Nested loop join will be used when the counts are small.
+* Nested loop join will be used when the counts are known to be very small, so we save the overhead of building a hash table.
 
 * Hash join will be used when the above are not true.
 
@@ -50,7 +50,7 @@ It turns out that with accurate cardinaltiy estimation, complex cost models do n
 
 3. Plan space enumeration
 
-We will use dynamic programming to exhaustively search for the optimal plan. Bushy plan trees will be considered. The emueration algorithm will be connected subgraph driven, e.g. [3]
+We will use dynamic programming to exhaustively search for the optimal plan. Bushy plan trees will be considered. The emueration algorithm will be connected subgraph driven and bottom-up, e.g. [3]
 
 4. Triple store specific consideration 
 
