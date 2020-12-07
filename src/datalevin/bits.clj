@@ -9,6 +9,7 @@
            [java.nio.charset StandardCharsets]
            [java.util Arrays UUID Date]
            [java.nio ByteBuffer]
+           [org.roaringbitmap RoaringBitmap]
            [datalevin.datom Datom]))
 
 ;; files
@@ -191,24 +192,42 @@
   [s]
   (letfn [(unhexify-2 [c1 c2]
             (unchecked-byte
-             (+ (bit-shift-left (Character/digit ^char c1 16) 4)
-                (Character/digit ^char c2 16))))]
+              (+ (bit-shift-left (Character/digit ^char c1 16) 4)
+                 (Character/digit ^char c2 16))))]
     (map #(apply unhexify-2 %) (partition 2 s))))
 
 ;; nippy
 
-(nippy/extend-freeze Datom :datalevin/datom
- [^Datom x ^DataOutput out]
- (.writeLong out (.-e x))
- (nippy/freeze-to-out! out (.-a x))
- (nippy/freeze-to-out! out (.-v x)))
 
-(nippy/extend-thaw :datalevin/datom
- [^DataInput in]
- (d/datom (.readLong in)
-          (nippy/thaw-from-in! in)
-          (nippy/thaw-from-in! in)
-          c/tx0))
+;; TODO would be faster using a bytebuffer
+;; https://github.com/ptaoussanis/nippy/issues/140
+
+(nippy/extend-freeze
+  Datom :datalevin/datom
+  [^Datom x ^DataOutput out]
+  (.writeLong out (.-e x))
+  (nippy/freeze-to-out! out (.-a x))
+  (nippy/freeze-to-out! out (.-v x)))
+
+(nippy/extend-thaw
+  :datalevin/datom
+  [^DataInput in]
+  (d/datom (.readLong in)
+           (nippy/thaw-from-in! in)
+           (nippy/thaw-from-in! in)
+           c/tx0))
+
+(nippy/extend-freeze
+  RoaringBitmap :datalevin/bitmap
+  [^RoaringBitmap x ^DataOutput out]
+  (.serialize x out))
+
+(nippy/extend-thaw
+  :datalevin/bitmap
+  [^DataInput in]
+  (let [bm (RoaringBitmap.)]
+    (.deserialize bm in)
+    bm))
 
 ;; datom
 
@@ -217,6 +236,16 @@
   (put-bytes bf (nippy/freeze x)))
 
 (defn- get-datom
+  [bb]
+  (nippy/thaw (get-bytes bb)))
+
+;; bitmap
+
+(defn- put-bitmap
+  [bf ^RoaringBitmap x]
+  (put-bytes bf (nippy/freeze x)))
+
+(defn- get-bitmap
   [bb]
   (nippy/thaw (get-bytes bb)))
 
@@ -549,6 +578,7 @@
     - `:boolean`, `true` or `false`
     - `:instant`, timestamp, same as `java.util.Date`
     - `:uuid`, UUID, same as `java.util.UUID`
+    - `:bitmap`, a `RoaringBitmap`
 
   or one of the following Datalog specific data types
 
@@ -590,6 +620,7 @@
                   (put-uuid bf x))
      :attr    (put-attr bf x)
      :datom   (put-datom bf x)
+     :bitmap  (put-bitmap bf x)
      :eav     (put-eav bf x)
      :eavt    (put-eav bf x)
      :aev     (put-aev bf x)
@@ -618,6 +649,7 @@
     - `:boolean`, `true` or `false`
     - `:instant`, timestamp, same as `java.util.Date`
     - `:uuid`, UUID, same as `java.util.UUID`
+    - `:bitmap`, a `RoaringBitmap`
 
   or one of the following Datalog specific data types
 
@@ -646,6 +678,7 @@
      :uuid    (do (get-byte bf) (get-uuid bf))
      :attr    (get-attr bf)
      :datom   (get-datom bf)
+     :bitmap  (get-bitmap bf)
      :eav     (get-eav bf)
      :eavt    (get-eav bf)
      :aev     (get-aev bf)

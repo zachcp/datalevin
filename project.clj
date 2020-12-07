@@ -7,7 +7,8 @@
             :url  "https://www.eclipse.org/legal/epl-1.0/"}
   :dependencies [[org.clojure/clojure "1.10.1" :scope "provided"]
                  [persistent-sorted-set "0.1.2"]
-                 [com.taoensso/nippy "3.0.0"]
+                 [com.taoensso/nippy "3.1.1"]
+                 [org.roaringbitmap/RoaringBitmap "0.9.3"]
                  [org.lmdbjava/lmdbjava "0.8.1"
                   ;; uncomment when run lein codox
                   ;; :exclusions
@@ -17,7 +18,7 @@
                   ;;  org.ow2.asm/asm-util]
                   ]]
   :profiles {:dev {:dependencies [[org.clojure/test.check "1.1.0"]
-                                  [com.taoensso/timbre "5.0.1"]]}}
+                                  [com.taoensso/timbre "5.1.0"]]}}
   :jvm-opts ["--add-opens" "java.base/java.nio=ALL-UNNAMED"
              "--add-opens" "java.base/sun.nio.ch=ALL-UNNAMED"]
 
@@ -32,6 +33,6 @@
           {#"target/classes" "https://github.com/juji-io/datalevin/blob/master/src/{classpath}x#L{line}"
            #".*"             "https://github.com/juji-io/datalevin/blob/master/{filepath}#L{line}"}}
   :global-vars {*print-namespace-maps* false
-                ;; *unchecked-math*       :warn-on-boxed
-                ;; *warn-on-reflection*   true
+                *unchecked-math*       :warn-on-boxed
+                *warn-on-reflection*   true
                 })

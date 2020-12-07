@@ -9,6 +9,7 @@
             [clojure.test.check.properties :as prop])
   (:import [java.util Arrays UUID Date]
            [java.nio ByteBuffer]
+           [org.roaringbitmap RoaringBitmap]
            [datalevin.bits Indexable Retrieved]))
 
 (def ^ByteBuffer bf (ByteBuffer/allocateDirect 16384))
@@ -128,6 +129,14 @@
     (.flip bf)
     (is (= d1 (nippy/thaw (nippy/freeze d1))))
     (is (= d1 (sut/read-buffer bf :datom)))))
+
+(deftest bitmap-test
+  (let [bm (RoaringBitmap/bitmapOf (int-array [1 2 3 1000]))]
+    (.clear bf)
+    (sut/put-buffer bf bm :bitmap)
+    (.flip bf)
+    (is (= bm (nippy/thaw (nippy/freeze bm))))
+    (is (= bm (sut/read-buffer bf :bitmap)))))
 
 (test/defspec datom-generative-test
   100
