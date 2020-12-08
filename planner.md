@@ -24,9 +24,11 @@ In RDF stores, all the triple values are normally considered norminal, and hence
 
 ## Entity class
 
-In order to leverage the semantics of EAV stores more effectively, we introduce a concept of entity class, which refers to the type of the entity. Similar to characteristic sets [7] in RDF stores, this concept captures the combination of attributes for a class of entities. In EAV stores, the set of attributes for a class of entities are often unique. There might be overlapping attributes between entity classes, but many attributes are used by only one class of entities, and these are often prefixed by the namespace unique to that entity class. We assign auto increment integer id for each entity class. and represent the mapping from attributes to entity class with bitmaps. Specifically, each attribute map entry has a `:entity-classes` key pointing to a roaring bitmap containing the ids of the entity classes that include the attribute in their definitions. This way, we can quickly identify the entity classes relevant to a query through fast bitmap AND.
+In order to leverage the semantics of EAV stores more effectively, we introduce a concept of entity class, which refers to the type of the entity. Similar to characteristic sets [7] in RDF stores or tables in relational DB, this concept captures the combination of attributes for a class of entities. In EAV stores, the set of attributes for a class of entities are often unique. There might be overlapping attributes between entity classes, but many attributes are used by only one class of entities, and these are often prefixed by the namespace unique to that entity class. We assign auto increment integer id for each entity class, and represent the mapping from attributes to entity class with bitmaps. Specifically, each attribute schema entry has a `:db/classes` key pointing to a set of entity class ids that include the attribute in their definitions. This way, we can quickly identify the entity classes relevant to a query or a transaction through fast set intersections.
 
-The mapping of entity class to corresponding entities is represented by a map of entity class ids to a roaing bitmap of entity ids. Such a map will be stored in a "class" LMDB BDI, so we can quickly identfy the entities of a class. 
+An additional "classes" LMDB BDI will be used, the keys will be class ids, and the values are the corresponding entities represented by a roaing bitmap of entity ids. This allows us to quickly find relevant entities for a query.
+
+For common attributes that should not contribute to the defintion of entity classes, user can mark such attributes under `:common-attributes` key, as part of of the option map given when openning the DB. 
 
 ## Indexing and statistics collection
 

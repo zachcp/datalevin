@@ -34,6 +34,7 @@
 (def ^:const +val-bytes-trunc+  491)  ; - hsh - tr
 
 (def ^:const +id-bytes+ Long/BYTES)
+(def ^:const +short-id-bytes+ Integer/BYTES)
 
 ;; value headers
 (def ^:const type-long-neg (unchecked-byte 0xC0))
@@ -80,6 +81,7 @@
 (def ^:const vae "datalevin/vae")
 (def ^:const giants "datalevin/giants")
 (def ^:const schema "datalevin/schema")
+(def ^:const classes "datalevin/classes")
 
 (def ^:const buffer-overflow "BufferOverflow:")
 

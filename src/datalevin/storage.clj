@@ -425,6 +425,7 @@
      (lmdb/open-dbi lmdb c/vae c/+max-key-size+ c/+id-bytes+)
      (lmdb/open-dbi lmdb c/giants c/+id-bytes+)
      (lmdb/open-dbi lmdb c/schema c/+max-key-size+)
+     (lmdb/open-dbi lmdb c/classes c/+short-id-bytes+)
      (let [schema' (init-schema lmdb schema)]
        (->Store lmdb
                 schema'
