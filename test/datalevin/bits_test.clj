@@ -136,7 +136,11 @@
     (sut/put-buffer bf bm :bitmap)
     (.flip bf)
     (is (= bm (nippy/thaw (nippy/freeze bm))))
-    (is (= bm (sut/read-buffer bf :bitmap)))))
+    (is (= bm (sut/read-buffer bf :bitmap)))
+    (.clear bf)
+    (sut/put-buffer bf {:bm bm})
+    (.flip bf)
+    (is (= {:bm bm} (sut/read-buffer bf)))))
 
 (test/defspec datom-generative-test
   100

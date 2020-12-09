@@ -108,106 +108,107 @@
 
   ISearch
   (-search
-   [db pattern]
-   (let [[e a v _] pattern]
-     (wrap-cache
-      store
-      [:search e a v]
-      (case-tree
-       [e a (some? v)]
-       [(s/fetch store (datom e a v)) ; e a v
-        (s/slice store :eav (datom e a c/v0) (datom e a c/vmax)) ; e a _
-        (s/slice-filter store :eav
-                        (fn [^Datom d] (= v (.-v d)))
-                        (datom e nil nil)
-                        (datom e nil nil))  ; e _ v
-        (s/slice store :eav (datom e nil nil) (datom e nil nil)) ; e _ _
-        (s/slice store :ave (datom e0 a v) (datom emax a v)) ; _ a v
-        (s/slice store :aev (datom e0 a nil) (datom emax a nil)) ; _ a _
-        (s/slice store :vae (datom e0 nil v) (datom emax nil v)) ; _ _ v
-        (s/slice store :eav (datom e0 nil nil) (datom emax nil nil))])))) ; _ _ _
+    [db pattern]
+    (let [[e a v _] pattern]
+      (wrap-cache
+        store
+        [:search e a v]
+        (case-tree
+          [e a (some? v)]
+          [(s/fetch store (datom e a v)) ; e a v
+           (s/slice store :eav (datom e a c/v0) (datom e a c/vmax)) ; e a _
+           (s/slice-filter store :eav
+                           (fn [^Datom d] (= v (.-v d)))
+                           (datom e nil nil)
+                           (datom e nil nil))  ; e _ v
+           (s/slice store :eav (datom e nil nil) (datom e nil nil)) ; e _ _
+           (s/slice store :ave (datom e0 a v) (datom emax a v)) ; _ a v
+           ;; (s/slice store :aev (datom e0 a nil) (datom emax a nil)) ; _ a _
+           (s/slice store :ave (datom e0 a nil) (datom emax a nil)) ; _ a _
+           (s/slice store :vae (datom e0 nil v) (datom emax nil v)) ; _ _ v
+           (s/slice store :eav (datom e0 nil nil) (datom emax nil nil))])))) ; _ _ _
 
   (-first
-   [db pattern]
-   (let [[e a v _] pattern]
-     (wrap-cache
-      store
-      [:first e a v]
-      (case-tree
-       [e a (some? v)]
-       [(s/fetch store (datom e a v)) ; e a v
-        (s/head store :eav (datom e a c/v0) (datom e a c/vmax)) ; e a _
-        (s/head-filter store :eav
-                       (fn [^Datom d] (= v (.-v d)))
-                       (datom e nil nil)
-                       (datom e nil nil))  ; e _ v
-        (s/head store :eav (datom e nil nil) (datom e nil nil)) ; e _ _
-        (s/head store :ave (datom e0 a v) (datom emax a v)) ; _ a v
-        (s/head store :aev (datom e0 a nil) (datom emax a nil)) ; _ a _
-        (s/head store :vae (datom e0 nil v) (datom emax nil v)) ; _ _ v
-        (s/head store :eav (datom e0 nil nil) (datom emax nil nil))])))) ; _ _ _
+    [db pattern]
+    (let [[e a v _] pattern]
+      (wrap-cache
+        store
+        [:first e a v]
+        (case-tree
+          [e a (some? v)]
+          [(s/fetch store (datom e a v)) ; e a v
+           (s/head store :eav (datom e a c/v0) (datom e a c/vmax)) ; e a _
+           (s/head-filter store :eav
+                          (fn [^Datom d] (= v (.-v d)))
+                          (datom e nil nil)
+                          (datom e nil nil))  ; e _ v
+           (s/head store :eav (datom e nil nil) (datom e nil nil)) ; e _ _
+           (s/head store :ave (datom e0 a v) (datom emax a v)) ; _ a v
+           (s/head store :aev (datom e0 a nil) (datom emax a nil)) ; _ a _
+           (s/head store :vae (datom e0 nil v) (datom emax nil v)) ; _ _ v
+           (s/head store :eav (datom e0 nil nil) (datom emax nil nil))])))) ; _ _ _
 
   (-count
-   [db pattern]
-   (let [[e a v _] pattern]
-     (wrap-cache
-      store
-      [:count e a v]
-      (case-tree
-       [e a (some? v)]
-       [(s/size store :eav (datom e a v) (datom e a v)) ; e a v
-        (s/size store :eav (datom e a c/v0) (datom e a c/vmax)) ; e a _
-        (s/size-filter store :eav
-                       (fn [^Datom d] (= v (.-v d)))
-                       (datom e nil nil)
-                       (datom e nil nil))  ; e _ v
-        (s/size store :eav (datom e nil nil) (datom e nil nil)) ; e _ _
-        (s/size store :ave (datom e0 a v) (datom emax a v)) ; _ a v
-        (s/size store :aev (datom e0 a nil) (datom emax a nil)) ; _ a _
-        (s/size store :vae (datom e0 nil v) (datom emax nil v)) ; _ _ v
-        (s/datom-count store :eav)])))) ; _ _ _
+    [db pattern]
+    (let [[e a v _] pattern]
+      (wrap-cache
+        store
+        [:count e a v]
+        (case-tree
+          [e a (some? v)]
+          [(s/size store :eav (datom e a v) (datom e a v)) ; e a v
+           (s/size store :eav (datom e a c/v0) (datom e a c/vmax)) ; e a _
+           (s/size-filter store :eav
+                          (fn [^Datom d] (= v (.-v d)))
+                          (datom e nil nil)
+                          (datom e nil nil))  ; e _ v
+           (s/size store :eav (datom e nil nil) (datom e nil nil)) ; e _ _
+           (s/size store :ave (datom e0 a v) (datom emax a v)) ; _ a v
+           (s/size store :aev (datom e0 a nil) (datom emax a nil)) ; _ a _
+           (s/size store :vae (datom e0 nil v) (datom emax nil v)) ; _ _ v
+           (s/datom-count store :eav)])))) ; _ _ _
 
   IIndexAccess
   (-populated?
-   [db index cs]
-   (wrap-cache
-    store
-    [:populated? index cs]
-    (s/populated? store index (components->pattern db index cs e0 tx0)
-             (components->pattern db index cs emax txmax))))
+    [db index cs]
+    (wrap-cache
+      store
+      [:populated? index cs]
+      (s/populated? store index (components->pattern db index cs e0 tx0)
+                    (components->pattern db index cs emax txmax))))
 
   (-datoms
-   [db index cs]
-   (wrap-cache
-    store
-    [:datoms index cs]
-    (s/slice store index (components->pattern db index cs e0 tx0)
-             (components->pattern db index cs emax txmax))))
+    [db index cs]
+    (wrap-cache
+      store
+      [:datoms index cs]
+      (s/slice store index (components->pattern db index cs e0 tx0)
+               (components->pattern db index cs emax txmax))))
 
   (-seek-datoms
-   [db index cs]
-   (wrap-cache
-    store
-    [:seek index cs]
-    (s/slice store index (components->pattern db index cs e0 tx0)
-             (datom emax nil nil txmax))))
+    [db index cs]
+    (wrap-cache
+      store
+      [:seek index cs]
+      (s/slice store index (components->pattern db index cs e0 tx0)
+               (datom emax nil nil txmax))))
 
   (-rseek-datoms
-   [db index cs]
-   (wrap-cache
-    store
-    [:rseek index cs]
-    (s/rslice store index (components->pattern db index cs emax txmax)
-              (datom e0 nil nil tx0))))
+    [db index cs]
+    (wrap-cache
+      store
+      [:rseek index cs]
+      (s/rslice store index (components->pattern db index cs emax txmax)
+                (datom e0 nil nil tx0))))
 
   (-index-range
-   [db attr start end]
-   (wrap-cache
-    store
-    [attr start end]
-    (do (validate-attr attr (list '-index-range 'db attr start end))
-        (s/slice store :avet (resolve-datom db nil attr start nil e0 tx0)
-                 (resolve-datom db nil attr end nil emax txmax)))))
+    [db attr start end]
+    (wrap-cache
+      store
+      [attr start end]
+      (do (validate-attr attr (list '-index-range 'db attr start end))
+          (s/slice store :avet (resolve-datom db nil attr start nil e0 tx0)
+                   (resolve-datom db nil attr end nil emax txmax)))))
 
   clojure.data/EqualityPartition
   (equality-partition [x] :datalevin/db))
