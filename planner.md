@@ -3,24 +3,24 @@
 ## Motivation
 
 Currently, Datalevin mostly inherits Datascript query engine, which is inefficient, as it
-does things the following way: All the data that matches each *individual* triple
+does things the following way: all the data that matches each *individual* triple
 pattern clause are fetched and turned into a set of datoms. The sets of datoms
 matching each clause are then hash-joined together one set after another.
-Although Datalevin added a few simple query optimizations, it is far from enough.
 
 Even with user hand crafted clauses order, this process still performs a lot of
-unnecessary data fetching and transformation, and stresses the join process and
-materializes a lot of intermediate relations needlessly.
+unnecessary data fetching and transformation, joins a lot of unneeded tuples and
+materializes a lot of intermediate relations needlessly. Although Datalevin
+added a few simple query optimizations, it is far from solving the problems.
 
 To address these problems, we will develop a new query engine with a query
-planner. We will also provide explain option for the users to see the query
-plan. This query planner will leverage some unique properties of EAV stores, and
-take advantage of some new indexing structures.
+planner. We will also support a `explain` function for the users to see the query
+plan. This query planner will leverage some unique properties of EAV stores,
+take advantage of some new indexing structures, and do concurrent query execution.
 
 ## Difference from RDF Stores
 
 Although EAV stores are heavily inspired by RDF stores, there are some important
-differences that impacts the query optimizer design.
+differences that impacts the query engine design.
 
 In RDF stores, there's no explicit identification of entities, and a Subject vs.
 Object join is implicit by value unification, whereas in EAV stores, these are
@@ -63,7 +63,7 @@ way, we can quickly identify the entity classes relevant to a query or a
 transaction through fast set intersections.
 
 An additional "classes" LMDB DBI will be used, the keys will be class ids, and
-the values are the corresponding entities represented by a roaing bitmap of
+the values are the corresponding entities represented by a bitmap of
 entity ids. This allows us to quickly find relevant entities for a query.
 
 For common attributes that should not contribute to the defintion of entity
@@ -81,23 +81,24 @@ classes in the data, and store the resulting graph.
 
 Specifically, a "links" LMDB DBI will be used, the keys are the pair of the
 entity class ids of the referring entity class (class of E) and the referred
-entity class (class of V), the values are roaring bitmaps of entity ids of
-referred entities (V), so that we can look up the linking triples quickly in VAE DBI.
+entity class (class of V), the values are bitmaps of entity ids of
+referred entities (V), so that we can look up the linking triples quickly in VAE
+DBI, which contains linking triples only.
 
 In addition, the scheam map has a built-in key `:db/graph`, and its value stores
 the adjacency list of the class link graph of the data, i.e. a map of links to
 the set of their adjacent links.
 
-## Statistics collction
+## Statistics collection
 
 As mentioned, the unique properties of EAV stores allows us to build the entity
-classes and links above incrementally during data transactions, instead of
-having to build them using expensive algorithms to go through full data out of band.
+classes and links described above incrementally during data transactions, instead of
+having to build them using expensive algorithms to go through full data set.
 
-The planner will use data statistics to estimate cost. Some of the statistics
+The planner will use data statistics to estimate cost of operations. Some of the statistics
 will be updated during transaction. They are effectively collected when we build
-the various roaring bitmaps, as these bitmaps can easily return the distinct
-counts. Others are collected at query time, e.g. range scan count and filter
+the various bitmaps described above, as these bitmaps can easily return the distinct
+counts and other statistics. Others are collected at query time, e.g. range scan count and filter
 predicate count, since these are relatively cheap to query.
 
 ## Query planning
@@ -106,32 +107,35 @@ The optimzer will first leverage the entity classes and the links between them
 to generate the skeleton of the plan.  Essentially, we leverage the set of attributes
 and their relationships in the query to:
 
-a. break up the query into sub-queries that can be independently executed,
-b. pre-filter the entities involved in each sub-query.
+  a. break up the query into sub-queries that can be independently executed,
+  b. pre-filter the entities involved in each sub-query.
 
-This significantly reduces the amount of work we have to do, especially for
-complex queries that involves long clains of where clauses.
+This pre-filtering significantly reduces the amount of work we have to do, especially for
+complex queries that involves long chains of where clauses.
+
+As we can see, the planner first consider long range relationships.  The reason to avoid
+starting with local star-like relationships is because they are often
+unselective, due to high correlation between attributes of an entity class.
 
 Entity classes and links form a directed graph. Querying is effectively matching
-query graph with data graph.  After the planner identifies the entity classes as
+query graph with the stored data graph.  After the planner identifies the entity classes as
 well as their linkage in the query, query link graph is then matched to data
-link graph, producing a set of link chains. Each chain can be considered a
-sub-query, and sub-queries can be processed in parallel. The results of the
+link graph, producing a set of link chains.
+
+Each chain can be considered a sub-query, and sub-queries can be processed in parallel. The results of the
 sub-queries then hash-joined together.
 
-The planner first consider the link chain joins.  Within each sub-query, there
-are often  star joins around an entity class. The reason to avoid starting with star
-joins is because they are often unselective due to high correlation between
-attributes of an entity class.
+For joins within a sub-query, we use the heuristics of join with increasing cardinality.
+Obviously, patterns with bound values and smaller results are joined first.
+ Attributes values can be obtained by joining entities looked up in "classes"
+ with entities looked up in "links". "classes" and "links" lookups participate
+ in the join order calculation as if they are normal patterns, as they may not be the
+ cheapest. This addresses the limitation of [1], which does not have other indices.
 
 Instead of using traditional yet expensive dynamic programming techniques to find the join
-order for chain joins, we use simple cost estimation methods and simple
+order for joining sub-queries results, we use simple cost estimation methods and simple
 heuristics in [1] to find the order with minimal cost. Basically, we will join
-links with increasing cardinality.
-
-For joins within a sub-query, we again join with increasing cardinality.
-Obviously, patterns with more bound variables are joined first. These joins
-happens within the already pre-filtered entities by the chain joins.
+chains with increasing cardinality.
 
 Finally, the planner will rewrite the query to push down predicate clauses into
 predicate filtering on indices directly to minimize unnecessary intermediate results.
@@ -156,9 +160,12 @@ become necessary so as to ensure minimal data are fetched and processed.
 
 Instead of returning a list of full datoms, the query index access functions should
 return a list of bound values of variables instead. This would avoid repetitively
-deserialize known component of a triple pattern, and then have to ignore them
-during joins. This is also consistent with the results of bitmap operations on
+deserializing known components of a triple pattern, and then have to ignore them
+during joins. Such results are also consistent with the results of bitmap operations on
 "classes" and "links" indices, i.e. they return a list of sorted entity ids.
+
+As mentioned, each sub-query can be executed by different thread in parallel, so
+large query can be performed more quickly on a multi-core system.
 
 ## Reference
 
