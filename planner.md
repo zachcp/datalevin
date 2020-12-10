@@ -2,7 +2,7 @@
 
 ## Motivation
 
-Datalevin mostly inherits Datascript query engine, which is inefficient, as it
+Currently, Datalevin mostly inherits Datascript query engine, which is inefficient, as it
 does things the following way: All the data that matches each *individual* triple
 pattern clause are fetched and turned into a set of datoms. The sets of datoms
 matching each clause are then hash-joined together one set after another.
@@ -90,7 +90,7 @@ the set of their adjacent links.
 
 ## Statistics collction
 
-As mentioned, the unique properties of EAV stores allows us to build the entiy
+As mentioned, the unique properties of EAV stores allows us to build the entity
 classes and links above incrementally during data transactions, instead of
 having to build them using expensive algorithms to go through full data out of band.
 
@@ -103,14 +103,17 @@ predicate count, since these are relatively cheap to query.
 ## Query planning
 
 The optimzer will first leverage the entity classes and the links between them
-to generate the skeleton of the plan.  Essentially, we use the set of attributes
-and their relationships in the query to a. break up the query into sub-queries
-that can be independently executed,  b. pre-filter the entities involved in each
-sub-query.  This reduces the amount of work we have to do, especially for
-complex queries that involves long clain of clauses.
+to generate the skeleton of the plan.  Essentially, we leverage the set of attributes
+and their relationships in the query to:
+
+a. break up the query into sub-queries that can be independently executed,
+b. pre-filter the entities involved in each sub-query.
+
+This significantly reduces the amount of work we have to do, especially for
+complex queries that involves long clains of where clauses.
 
 Entity classes and links form a directed graph. Querying is effectively matching
-query graph and data graph.  After the planner identifies the entity classes as
+query graph with data graph.  After the planner identifies the entity classes as
 well as their linkage in the query, query link graph is then matched to data
 link graph, producing a set of link chains. Each chain can be considered a
 sub-query, and sub-queries can be processed in parallel. The results of the
@@ -121,12 +124,12 @@ are often  star joins around an entity class. The reason to avoid starting with 
 joins is because they are often unselective due to high correlation between
 attributes of an entity class.
 
-Instead of using the expensive dynamic programming technique to find the join
+Instead of using traditional yet expensive dynamic programming techniques to find the join
 order for chain joins, we use simple cost estimation methods and simple
 heuristics in [1] to find the order with minimal cost. Basically, we will join
-links with increasing cardinaltiy.
+links with increasing cardinality.
 
-For joins within a sub-query, we again join with increasing cardinaltiy.
+For joins within a sub-query, we again join with increasing cardinality.
 Obviously, patterns with more bound variables are joined first. These joins
 happens within the already pre-filtered entities by the chain joins.
 
