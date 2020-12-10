@@ -74,20 +74,20 @@
   (case vm
     "datalevin"
     (apply run "clojure" "-Sdeps"
-      (cond
-        (= "latest" version)
-        (str "{:paths [\"src\"]"
-          "    :deps {datalevin {:local/root \"..\"} org.lmdbjava/lmdbjava {:mvn/version \"0.8.1\"} com.taoensso/nippy {:mvn/version \"2.14.0\"}}}")
+           (cond
+             (= "latest" version)
+             (str "{:paths [\"src\"]"
+                  "    :deps {datalevin {:local/root \"..\"} org.lmdbjava/lmdbjava {:mvn/version \"0.8.1\"} com.taoensso/nippy {:mvn/version \"3.1.1\"} org.roaringbitmap/RoaringBitmap {:mvn/version \"0.9.3\"}}}")
 
-        (re-matches #"\d+\.\d+\.\d+" version)
-        (str "{:paths [\"src\"]"
-          "    :deps {datalevin {:mvn/version \"" version "\"}}}")
+             (re-matches #"\d+\.\d+\.\d+" version)
+             (str "{:paths [\"src\"]"
+                  "    :deps {datalevin {:mvn/version \"" version "\"}}}")
 
-        (re-matches #"[0-9a-fA-F]{40}" version)
-        (str "{:paths [\"src\"]"
-          "    :deps {datalevin {:git/url \"https://github.com/juji-io\" :sha \"" version "\"}}}"))
-      "-m" "datalevin-bench.datalevin"
-      benchmarks)
+             (re-matches #"[0-9a-fA-F]{40}" version)
+             (str "{:paths [\"src\"]"
+                  "    :deps {datalevin {:git/url \"https://github.com/juji-io\" :sha \"" version "\"}}}"))
+           "-m" "datalevin-bench.datalevin"
+           benchmarks)
 
     "datascript"
     (apply run "clojure" "-Sdeps"
@@ -100,12 +100,12 @@
 
     "datomic"
     (apply run "clojure" "-Sdeps"
-      (str "{"
-        " :paths [\"src\" \"src-datomic\"]"
-        " :deps {com.datomic/datomic-free {:mvn/version \"" (if (= "latest" version) "0.9.5697" version) "\"}}"
-        "}")
-      "-m" "datalevin-bench.datomic"
-      benchmarks)
+           (str "{"
+                " :paths [\"src\" \"src-datomic\"]"
+                " :deps {com.datomic/datomic-free {:mvn/version \"" (if (= "latest" version) "0.9.5697" version) "\"}}"
+                "}")
+           "-m" "datalevin-bench.datomic"
+           benchmarks)
     ))
 
 
@@ -120,7 +120,7 @@
    "q2"
    "q3"
    "q4"
-   ;; "q5"
+   "q5"
    "qpred1"
    "qpred2"])
 

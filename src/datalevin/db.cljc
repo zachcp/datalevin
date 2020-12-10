@@ -123,8 +123,7 @@
                            (datom e nil nil))  ; e _ v
            (s/slice store :eav (datom e nil nil) (datom e nil nil)) ; e _ _
            (s/slice store :ave (datom e0 a v) (datom emax a v)) ; _ a v
-           ;; (s/slice store :aev (datom e0 a nil) (datom emax a nil)) ; _ a _
-           (s/slice store :ave (datom e0 a nil) (datom emax a nil)) ; _ a _
+           (s/slice store :aev (datom e0 a nil) (datom emax a nil)) ; _ a _
            (s/slice store :vae (datom e0 nil v) (datom emax nil v)) ; _ _ v
            (s/slice store :eav (datom e0 nil nil) (datom emax nil nil))])))) ; _ _ _
 
