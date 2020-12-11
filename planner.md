@@ -1,4 +1,4 @@
-# Datalevin Query Planner
+# Datalevin Query Engine
 
 ## Motivation
 
@@ -85,7 +85,7 @@ entity class (class of V), the values are bitmaps of entity ids of
 referred entities (V), so that we can look up the linking triples quickly in VAE
 DBI, which contains linking triples only.
 
-In addition, the scheam map has a built-in key `:db/graph`, and its value stores
+In addition, the schema map has a built-in key `:db/graph`, and its value stores
 the adjacency list of the class link graph of the data, i.e. a map of links to
 the set of their adjacent links.
 
