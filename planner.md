@@ -13,7 +13,7 @@ materializes a lot of intermediate relations needlessly. Although Datalevin
 added a few simple query optimizations, it is far from solving the problems.
 
 To address these problems, we will develop a new query engine with a query
-planner. We will also support a `explain` function for the users to see the query
+planner. We will also support an `explain` function for the users to see the query
 plan. This query planner will leverage some unique properties of EAV stores,
 take advantage of some new indexing structures, and do concurrent query execution.
 
@@ -46,9 +46,9 @@ this kind of storage.
 ## Entity classes
 
 In order to leverage the semantics of EAV stores more effectively, we introduce
-a concept of entity class, which refers to the type of the entity. Similar to
-characteristic sets [2] in RDF stores or tables in relational DB, this concept
-captures the unique combination of attributes for a class of entities.
+a concept of entity class, which refers to the type of entities. Similar to
+characteristic sets [2] in RDF stores or table columns in relational DB, this concept
+captures the defining combination of attributes for a class of entities.
 
 In EAV stores, the set of attributes for a class of entities are often unique.
 There might be overlapping attributes between entity classes, but many
@@ -66,15 +66,28 @@ An additional "classes" LMDB DBI will be used, the keys will be class ids, and
 the values are the corresponding entities represented by a bitmap of
 entity ids. This allows us to quickly find relevant entities for a query.
 
+Unlike previous work in the literature, our definition of entity class is firm
+(i.e. one class is defined by one unique set of attributes), but the class
+membership is flexible.  As attributes are added to or removed from an entity
+during its lifetime in the database, the entity may find itself belonging to
+multiple related entity classes. We made this choice because the cost of always
+maintaining accurate entity class membership for all entities is rather high,
+for we had to maintain a mapping from entity to its class. We accept the slight
+overhead of matching more entities than necessary during query. Since the
+purpose of entity class is only to pre-filter entities, not to precisely match
+query constraints, some false positives are acceptable, as long as there is no
+false negative. In this sense, entity class works like a free bloom filter
+without doing any hashing.
+
 For common attributes that should not contribute to the defintion of entity
 classes, user can mark such attributes under `:common-attributes` key, as part
 of of the option map given when openning the DB.
 
 ## Class links
 
-We also introduce a notion of entity class link that represents a pair of entity
+We further introduce a notion of entity class link that represents a pair of entity
 classes that are connected by triples with `:db.type/ref` type attributes.
-Similar to extended characteristic sets [1] or foreigin key relation in
+Similar to extended characteristic sets [1] or foreign key relation in
 relational DB, this concept captures the long range relationship in the EAV
 data. We will leverage such declaration to infer the links between entity
 classes in the data, and store the resulting graph.
@@ -87,7 +100,9 @@ DBI, which contains linking triples only.
 
 In addition, the schema map has a built-in key `:db/graph`, and its value stores
 the adjacency list of the class link graph of the data, i.e. a map of links to
-the set of their adjacent links.
+the set of their adjacent links. This graph structure capture the overall structure
+of the data. We will use this to pre-filter entities for those complex
+queries spanning multiple related entity classes.
 
 ## Statistics collection
 
@@ -107,8 +122,8 @@ The optimzer will first leverage the entity classes and the links between them
 to generate the skeleton of the plan.  Essentially, we leverage the set of attributes
 and their relationships in the query to:
 
-  a. break up the query into sub-queries that can be independently executed,
-  b. pre-filter the entities involved in each sub-query.
+    a. break up the query into sub-queries that can be independently executed,
+    b. pre-filter the entities involved in each sub-query.
 
 This pre-filtering significantly reduces the amount of work we have to do, especially for
 complex queries that involves long chains of where clauses.
@@ -132,7 +147,7 @@ Obviously, patterns with bound values and smaller results are joined first.
  in the join order calculation as if they are normal patterns, as they may not be the
  cheapest. This addresses the limitation of [1], which does not have other indices.
 
-Instead of using traditional yet expensive dynamic programming techniques to find the join
+Instead of using expensive dynamic programming techniques to find the join
 order for joining sub-queries results, we use simple cost estimation methods and simple
 heuristics in [1] to find the order with minimal cost. Basically, we will join
 chains with increasing cardinality.
