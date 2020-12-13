@@ -5,7 +5,8 @@
 Currently, Datalevin mostly inherits Datascript query engine, which is inefficient, as it
 does things the following way: all the data that matches each *individual* triple
 pattern clause are fetched and turned into a set of datoms. The sets of datoms
-matching each clause are then hash-joined together one set after another.
+matching each clause are then hash-joined together one set after another. So if
+a query has _n_ clauses, it would do _n_ index scans and _n-1_ hash joins.
 
 Even with user hand crafted clauses order, this process still performs a lot of
 unnecessary data fetching and transformation, joins a lot of unneeded tuples and
@@ -27,8 +28,8 @@ Object join is implicit by value unification, whereas in EAV stores, these are
 explicit.  First, the entities are explicitly defined during transactions in EAV
 stores; second, the entity vs. entity relationship is also explicitly marked by
 `:db.type/ref` value type. Concequently, unlike in RDF stores, expensive
-algorithms to discover entities (e.g. characteristic sets [2])  and their
-relationship (e.g. extended characteristic sets [1]) can be made cheaper. We
+algorithms to discover entities (e.g. characteristic sets [3])  and their
+relationship (e.g. extended characteristic sets [2]) can be made cheaper. We
 will exploit these for indexing.
 
 On the other hand, RDF stores often have a very limited number of properties
@@ -47,7 +48,7 @@ this kind of storage.
 
 In order to leverage the semantics of EAV stores more effectively, we introduce
 a concept of entity class, which refers to the type of entities. Similar to
-characteristic sets [2] in RDF stores or table columns in relational DB, this concept
+characteristic sets [3] in RDF stores or table columns in relational DB, this concept
 captures the defining combination of attributes for a class of entities.
 
 In EAV stores, the set of attributes for a class of entities are often unique.
@@ -137,19 +138,27 @@ query graph with the stored data graph.  After the planner identifies the entity
 well as their linkage in the query, query link graph is then matched to data
 link graph, producing a set of link chains.
 
-Each chain can be considered a sub-query, and sub-queries can be processed in parallel. The results of the
-sub-queries then hash-joined together.
+Each chain can be considered a sub-query, and sub-queries can be processed in
+parallel.  The results of the sub-queries then hash-joined together.
 
 For joins within a sub-query, we use the heuristics of join with increasing cardinality.
 Obviously, patterns with bound values and smaller results are joined first.
- Attributes values can be obtained by joining entities looked up in "classes"
- with entities looked up in "links". "classes" and "links" lookups participate
- in the join order calculation as if they are normal patterns, as they may not be the
- cheapest. This addresses the limitation of [1], which does not have other indices.
+Relevant triples can be obtained by joining entities looked up in "classes"
+with entities looked up in "links".
+
+"classes" and "links" based index scans will also participate in the join order
+calculation as if they are normal pattern clauses, as they may not be
+the cheapest.  This addresses the limitation of [2], which does not have other indices.
+
+For large number of local star-like attributes, the planner will also consider
+pivot scan [1] that returns multiple attribute values in a single index scan,
+because after the most selective attributes have been joined together to reach a
+low enough tuple count, it might be cheaper to obtain remaining attributes with
+a pivot scan than match-and-join them.
 
 Instead of using expensive dynamic programming techniques to find the join
 order for joining sub-queries results, we use simple cost estimation methods and simple
-heuristics in [1] to find the order with minimal cost. Basically, we will join
+heuristics in [2] to find the order with minimal cost. Basically, we will join
 chains with increasing cardinality.
 
 Finally, the planner will rewrite the query to push down predicate clauses into
@@ -184,6 +193,14 @@ large query can be performed more quickly on a multi-core system.
 
 ## Reference
 
-[1] Meimaris, Marios, et al. "Extended characteristic sets: graph indexing for SPARQL query optimization." 2017 IEEE 33rd International Conference on Data Engineering (ICDE). IEEE, 2017.
+[1] Brodt, Andreas, Oliver Schiller, and Bernhard Mitschang. "Efficient resource
+attribute retrieval in RDF triple stores." Proceedings of the 20th ACM
+international conference on Information and knowledge management (CIKM). 2011.
 
-[2] Neumann, Thomas, and Guido Moerkotte. "Characteristic sets: Accurate cardinality estimation for RDF queries with multiple joins." 2011 IEEE 27th International Conference on Data Engineering (ICDE). IEEE, 2011.
+[2] Meimaris, Marios, et al. "Extended characteristic sets: graph indexing for
+SPARQL query optimization." IEEE 33rd International Conference on Data
+Engineering (ICDE). 2017.
+
+[3] Neumann, Thomas, and Guido Moerkotte. "Characteristic sets: Accurate
+cardinality estimation for RDF queries with multiple joins." IEEE 27th
+International Conference on Data Engineering (ICDE). 2011.
