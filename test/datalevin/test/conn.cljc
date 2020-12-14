@@ -26,35 +26,35 @@
     (is (= (d/schema conn2) (d/update-schema conn1 s)))
     (d/update-schema conn1 s1)
     (d/transact! conn1 txs)
-    (is (not (nil? (:a (first (d/datoms @conn1 :eavt))))))))
+    (is (not (nil? (:a (first (d/datoms @conn1 :eav))))))))
 
 
 (deftest test-ways-to-create-conn-1
   (let [conn (d/create-conn)]
-    (is (= #{} (set (d/datoms @conn :eavt))))
+    (is (= #{} (set (d/datoms @conn :eav))))
     (is (= c/implicit-schema (:schema @conn)))))
 
 (deftest test-ways-to-create-conn-2
   (let [conn (d/create-conn nil schema)]
-    (is (= #{} (set (d/datoms @conn :eavt))))
+    (is (= #{} (set (d/datoms @conn :eav))))
     (is (= (:schema @conn) (merge schema c/implicit-schema)))))
 
 (deftest test-ways-to-create-conn-3
 
   (let [conn (d/conn-from-datoms datoms)]
-    (is (= datoms (set (d/datoms @conn :eavt))))
+    (is (= datoms (set (d/datoms @conn :eav))))
     (is (= (d/schema conn) (:schema @conn))))
 
   (let [conn (d/conn-from-datoms datoms nil schema)]
-    (is (= datoms (set (d/datoms @conn :eavt))))
+    (is (= datoms (set (d/datoms @conn :eav))))
     (is (= (d/schema conn) (:schema @conn))))
 
   (let [conn (d/conn-from-db (d/init-db datoms))]
-    (is (= datoms (set (d/datoms @conn :eavt))))
+    (is (= datoms (set (d/datoms @conn :eav))))
     (is (= (d/schema conn) (:schema @conn))))
 
   (let [conn (d/conn-from-db (d/init-db datoms nil schema))]
-    (is (= datoms (set (d/datoms @conn :eavt))))
+    (is (= datoms (set (d/datoms @conn :eav))))
     (is (= (d/schema conn) (:schema @conn)))))
 
 (deftest test-recreate-conn
@@ -71,7 +71,7 @@
       (d/transact! conn2 [{:db/id         -2
                            :name          "Another name"
                            :dt/updated-at (Date.)}])
-      (is (= 4 (count (d/datoms @conn2 :eavt)))))))
+      (is (= 4 (count (d/datoms @conn2 :eav)))))))
 
 (deftest test-get-conn
   (let [schema {:name          {:db/valueType :db.type/string}
@@ -87,7 +87,7 @@
       (d/transact! conn2 [{:db/id         -2
                            :name          "Another name"
                            :dt/updated-at (Date.)}])
-      (is (= 4 (count (d/datoms @conn2 :eavt)))))))
+      (is (= 4 (count (d/datoms @conn2 :eav)))))))
 
 (deftest test-with-conn
   (d/with-conn [conn (u/tmp-dir (str "with-conn-test-" (UUID/randomUUID)))]

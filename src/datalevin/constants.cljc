@@ -71,7 +71,7 @@
 (def ^:const normal 0)
 (def ^:const gt0 1)
 
-(def ^:const index-types #{:eavt :eav :aev :aevt :ave :avet :vae :vaet})
+(def ^:const index-types #{:eav :aev :ave :vae})
 
 
 ;; dbi-names
@@ -82,6 +82,7 @@
 (def ^:const giants "datalevin/giants")
 (def ^:const schema "datalevin/schema")
 (def ^:const classes "datalevin/classes")
+(def ^:const links "datalevin/links")
 
 (def ^:const buffer-overflow "BufferOverflow:")
 

@@ -148,7 +148,7 @@
                        :db/isComponent true}}
         db     (d/db-with (d/empty-db nil schema)
                           [{:db/id 1, :comp [{:name "C"}]}])]
-    (is (= (mapv (juxt :e :a :v) (d/datoms db :eavt))
+    (is (= (mapv (juxt :e :a :v) (d/datoms db :eav))
            [ [ 1 :comp 2  ]
             [ 2 :name "C"] ])))
 
@@ -156,7 +156,7 @@
                        :db/cardinality :db.cardinality/many}}
         db     (d/db-with (d/empty-db nil schema)
                           [{:db/id 1, :comp [{:name "C"}]}])]
-    (is (= (mapv (juxt :e :a :v) (d/datoms db :eavt))
+    (is (= (mapv (juxt :e :a :v) (d/datoms db :eav))
            [ [ 1 :comp 2  ]
             [ 2 :name "C"] ])))
 
@@ -164,13 +164,13 @@
                        :db/isComponent true}}
         db     (d/db-with (d/empty-db nil schema)
                           [{:db/id 1, :comp {:name "C"}}])]
-    (is (= (mapv (juxt :e :a :v) (d/datoms db :eavt))
+    (is (= (mapv (juxt :e :a :v) (d/datoms db :eav))
            [ [ 1 :comp 2  ]
             [ 2 :name "C"] ])))
 
   (let [schema {:comp {:db/valueType :db.type/ref}}
         db     (d/db-with (d/empty-db nil schema)
                           [{:db/id 1, :comp {:name "C"}}])]
-    (is (= (mapv (juxt :e :a :v) (d/datoms db :eavt))
+    (is (= (mapv (juxt :e :a :v) (d/datoms db :eav))
            [ [ 1 :comp 2  ]
             [ 2 :name "C"] ]))))

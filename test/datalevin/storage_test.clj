@@ -154,7 +154,7 @@
         d      (d/datom c/e0 :a v)]
     (sut/load-datoms store [d])
     (is (= [d] (sut/fetch store d)))
-    (is (= [d] (sut/slice store :eavt
+    (is (= [d] (sut/slice store :eav
                           (d/datom c/e0 :a c/v0)
                           (d/datom c/e0 :a c/vmax))))))
 
@@ -166,7 +166,7 @@
         d1    (d/datom (inc c/e0) :b v)]
     (sut/load-datoms store [d])
     (is (= [d] (sut/fetch store d)))
-    (is (= [d] (sut/slice store :eavt
+    (is (= [d] (sut/slice store :eav
                           (d/datom c/e0 :a c/v0)
                           (d/datom c/e0 :a c/vmax))))
     (sut/close store)
@@ -176,7 +176,7 @@
                           (d/datom c/e0 :a c/v0)
                           (d/datom c/e0 :a c/vmax)))
       (is (= [d] (sut/fetch store' d)))
-      (is (= [d] (sut/slice store' :eavt
+      (is (= [d] (sut/slice store' :eav
                             (d/datom c/e0 :a c/v0)
                             (d/datom c/e0 :a c/vmax))))
       (sut/load-datoms store' [d1])
@@ -192,7 +192,7 @@
         d1    (d/datom (inc c/e0) :b v)]
     (sut/load-datoms store [d])
     (is (= [d] (sut/fetch store d)))
-    (is (= [d] (sut/slice store :eavt
+    (is (= [d] (sut/slice store :eav
                           (d/datom c/e0 :a c/v0)
                           (d/datom c/e0 :a c/vmax))))
     (sut/close store)
@@ -202,7 +202,7 @@
                           (d/datom c/e0 :a c/v0)
                           (d/datom c/e0 :a c/vmax)))
       (is (= [d] (sut/fetch store' d)))
-      (is (= [d] (sut/slice store' :eavt
+      (is (= [d] (sut/slice store' :eav
                             (d/datom c/e0 :a c/v0)
                             (d/datom c/e0 :a c/vmax))))
       (sut/load-datoms store' [d1])

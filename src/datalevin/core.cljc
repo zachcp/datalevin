@@ -216,13 +216,13 @@
 (defn datoms
   "Index lookup. Returns a sequence of datoms (lazy iterator over actual DB index) which components (e, a, v) match passed arguments.
 
-   Datoms are sorted in index sort order. Possible `index` values are: `:eavt`, `:aevt`, `:avet`, `:vaet`, or without the `t` at the end, e.g. `:eav`.
+   Datoms are sorted in index sort order. Possible `index` values are: `:eav`, `:aev`, `:ave`, `:vae`.
 
    Usage:
 
        ; find all datoms for entity id == 1 (any attrs and values)
        ; sort by attribute, then value
-       (datoms db :eavt 1)
+       (datoms db :eav 1)
        ; => (#datalevin/Datom [1 :friends 2]
        ;     #datalevin/Datom [1 :likes \"fries\"]
        ;     #datalevin/Datom [1 :likes \"pizza\"]
@@ -230,17 +230,17 @@
 
        ; find all datoms for entity id == 1 and attribute == :likes (any values)
        ; sorted by value
-       (datoms db :eavt 1 :likes)
+       (datoms db :eav 1 :likes)
        ; => (#datalevin/Datom [1 :likes \"fries\"]
        ;     #datalevin/Datom [1 :likes \"pizza\"])
 
        ; find all datoms for entity id == 1, attribute == :likes and value == \"pizza\"
-       (datoms db :eavt 1 :likes \"pizza\")
+       (datoms db :eav 1 :likes \"pizza\")
        ; => (#datalevin/Datom [1 :likes \"pizza\"])
 
        ; find all datoms for attribute == :likes (any entity ids and values)
        ; sorted by entity id, then value
-       (datoms db :aevt :likes)
+       (datoms db :aev :likes)
        ; => (#datalevin/Datom [1 :likes \"fries\"]
        ;     #datalevin/Datom [1 :likes \"pizza\"]
        ;     #datalevin/Datom [2 :likes \"candy\"]
@@ -248,32 +248,32 @@
        ;     #datalevin/Datom [2 :likes \"pizza\"])
 
        ; find all datoms that have attribute == `:likes` and value == `\"pizza\"` (any entity id)
-       (datoms db :avet :likes \"pizza\")
+       (datoms db :ave :likes \"pizza\")
        ; => (#datalevin/Datom [1 :likes \"pizza\"]
        ;     #datalevin/Datom [2 :likes \"pizza\"])
 
        ; find all datoms sorted by entity id, then attribute, then value
-       (datoms db :eavt) ; => (...)
+       (datoms db :eav) ; => (...)
 
    Useful patterns:
 
        ; get all values of :db.cardinality/many attribute
-       (->> (datoms db :eavt eid attr) (map :v))
+       (->> (datoms db :eav eid attr) (map :v))
 
        ; lookup entity ids by attribute value
-       (->> (datoms db :avet attr value) (map :e))
+       (->> (datoms db :ave attr value) (map :e))
 
        ; find all entities with a specific attribute
-       (->> (datoms db :aevt attr) (map :e))
+       (->> (datoms db :aev attr) (map :e))
 
        ; find “singleton” entity by its attr
-       (->> (datoms db :aevt attr) first :e)
+       (->> (datoms db :aev attr) first :e)
 
        ; find N entities with lowest attr value (e.g. 10 earliest posts)
-       (->> (datoms db :avet attr) (take N))
+       (->> (datoms db :ave attr) (take N))
 
        ; find N entities with highest attr value (e.g. 10 latest posts)
-       (->> (datoms db :avet attr) (reverse) (take N))
+       (->> (datoms db :ave attr) (reverse) (take N))
 
    Gotchas:
 
@@ -294,7 +294,7 @@
 
    Usage:
 
-       (seek-datoms db :eavt 1)
+       (seek-datoms db :eav 1)
        ; => (#datalevin/Datom [1 :friends 2]
        ;     #datalevin/Datom [1 :likes \"fries\"]
        ;     #datalevin/Datom [1 :likes \"pizza\"]
@@ -303,19 +303,19 @@
        ;     #datalevin/Datom [2 :likes \"pie\"]
        ;     #datalevin/Datom [2 :likes \"pizza\"])
 
-       (seek-datoms db :eavt 1 :name)
+       (seek-datoms db :eav 1 :name)
        ; => (#datalevin/Datom [1 :name \"Ivan\"]
        ;     #datalevin/Datom [2 :likes \"candy\"]
        ;     #datalevin/Datom [2 :likes \"pie\"]
        ;     #datalevin/Datom [2 :likes \"pizza\"])
 
-       (seek-datoms db :eavt 2)
+       (seek-datoms db :eav 2)
        ; => (#datalevin/Datom [2 :likes \"candy\"]
        ;     #datalevin/Datom [2 :likes \"pie\"]
        ;     #datalevin/Datom [2 :likes \"pizza\"])
 
        ; no datom [2 :likes \"fish\"], so starts with one immediately following such in index
-       (seek-datoms db :eavt 2 :likes \"fish\")
+       (seek-datoms db :eav 2 :likes \"fish\")
        ; => (#datalevin/Datom [2 :likes \"pie\"]
        ;     #datalevin/Datom [2 :likes \"pizza\"])"
   ([db index]             {:pre [(db/db? db)]} (db/-seek-datoms db index []))
@@ -335,7 +335,7 @@
 
 
 (defn index-range
-  "Returns part of `:avet` index between `[_ attr start]` and `[_ attr end]` in AVET sort order.
+  "Returns part of `:ave` index between `[_ attr start]` and `[_ attr end]` in AVE sort order.
 
    Same properties as [[datoms]].
 
@@ -516,8 +516,8 @@
                   { :db-before @conn
                     :db-after  db
                     :tx-data   (concat
-                                 (map #(assoc % :added false) (datoms @conn :eavt))
-                                 (datoms db :eavt))
+                                 (map #(assoc % :added false) (datoms @conn :eav))
+                                 (datoms db :eav))
                     :tx-meta   tx-meta})]
       (reset! conn db)
       (doseq [[_ callback] (some-> (:listeners (meta conn)) (deref))]

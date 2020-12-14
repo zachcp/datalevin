@@ -102,7 +102,7 @@
               (d/empty-db (u/tmp-dir (str "datalevin-bench-retract" (rand-int 10000)))
                           schema)
                         core/people20k)
-        eids (->> (d/datoms db :aevt :name) (map :e) (shuffle))]
+        eids (->> (d/datoms db :aev :name) (map :e) (shuffle))]
     (core/bench-once
       (reduce (fn [db eid] (d/db-with db [[:db.fn/retractEntity eid]])) db eids))))
 

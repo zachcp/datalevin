@@ -50,21 +50,21 @@
 
 (defn db-transient [db]
   (-> db
-      (assoc :eavt (set/sorted-set-by d/cmp-datoms-eavt))
-      (assoc :aevt (set/sorted-set-by d/cmp-datoms-aevt))
-      (assoc :avet (set/sorted-set-by d/cmp-datoms-avet))
-      (assoc :vaet (set/sorted-set-by d/cmp-datoms-vaet))
-      (update :eavt transient)
-      (update :aevt transient)
-      (update :avet transient)
-      (update :vaet transient)))
+      (assoc :eav (set/sorted-set-by d/cmp-datoms-eavt))
+      (assoc :aev (set/sorted-set-by d/cmp-datoms-aevt))
+      (assoc :ave (set/sorted-set-by d/cmp-datoms-avet))
+      (assoc :vae (set/sorted-set-by d/cmp-datoms-vaet))
+      (update :eav transient)
+      (update :aev transient)
+      (update :ave transient)
+      (update :vae transient)))
 
 (defn db-persistent! [db]
   (-> db
-      (update :eavt persistent!)
-      (update :aevt persistent!)
-      (update :avet persistent!)
-      (update :vaet persistent!)))
+      (update :eav persistent!)
+      (update :aev persistent!)
+      (update :ave persistent!)
+      (update :vae persistent!)))
 
 (defprotocol Searchable
   (-searchable? [_]))
@@ -88,7 +88,7 @@
          (.put ^ConcurrentHashMap caches ~store (assoc cache# ~pattern res#))
          res#))))
 
-(defrecord-updatable DB [^Store store eavt aevt avet vaet
+(defrecord-updatable DB [^Store store eav aev ave vae
                          max-eid max-tx schema rschema hash]
 
   clojure.lang.IEditableCollection
@@ -206,7 +206,7 @@
       store
       [attr start end]
       (do (validate-attr attr (list '-index-range 'db attr start end))
-          (s/slice store :avet (resolve-datom db nil attr start nil e0 tx0)
+          (s/slice store :ave (resolve-datom db nil attr start nil e0 tx0)
                    (resolve-datom db nil attr end nil emax txmax)))))
 
   clojure.data/EqualityPartition
@@ -286,10 +286,10 @@
      {:store   store
       :schema  schema
       :rschema (rschema (merge implicit-schema schema))
-      :eavt    (set/sorted-set-by d/cmp-datoms-eavt)
-      :aevt    (set/sorted-set-by d/cmp-datoms-aevt)
-      :avet    (set/sorted-set-by d/cmp-datoms-avet)
-      :vaet    (set/sorted-set-by d/cmp-datoms-vaet)
+      :eav    (set/sorted-set-by d/cmp-datoms-eavt)
+      :aev    (set/sorted-set-by d/cmp-datoms-aevt)
+      :ave    (set/sorted-set-by d/cmp-datoms-avet)
+      :vae    (set/sorted-set-by d/cmp-datoms-vaet)
       :max-eid (s/init-max-eid store)
       :max-tx  tx0
       :hash    (atom 0)})))
@@ -329,13 +329,9 @@
 
 (defn- components->pattern [db index [c0 c1 c2 c3] default-e default-tx]
   (case index
-    :eavt (resolve-datom db c0 c1 c2 c3 default-e default-tx)
-    :eav  (resolve-datom db c0 c1 c2 c3 default-e default-tx)
-    :aevt (resolve-datom db c1 c0 c2 c3 default-e default-tx)
-    :aev  (resolve-datom db c1 c0 c2 c3 default-e default-tx)
-    :avet (resolve-datom db c2 c0 c1 c3 default-e default-tx)
-    :ave  (resolve-datom db c2 c0 c1 c3 default-e default-tx)
-    :vaet (resolve-datom db c2 c1 c0 c3 default-e default-tx)
+    :eav (resolve-datom db c0 c1 c2 c3 default-e default-tx)
+    :aev (resolve-datom db c1 c0 c2 c3 default-e default-tx)
+    :ave (resolve-datom db c2 c0 c1 c3 default-e default-tx)
     :vae  (resolve-datom db c2 c1 c0 c3 default-e default-tx)))
 
 ;; ----------------------------------------------------------------------------
@@ -373,20 +369,20 @@
         (nil? value)
         nil
         :else
-        (or (-> (set/slice (get db :avet)
+        (or (-> (set/slice (get db :ave)
                            (datom e0 attr value tx0)
                            (datom emax attr value txmax))
                 first :e)
-            (-> (-datoms db :avet eid) first :e))))
+            (-> (-datoms db :ave eid) first :e))))
 
     #?@(:cljs [(array? eid) (recur db (array-seq eid))])
 
     (keyword? eid)
-    (or (-> (set/slice (get db :avet)
+    (or (-> (set/slice (get db :ave)
                        (datom e0 :db/ident eid tx0)
                        (datom emax :db/ident eid txmax))
             first :e)
-        (-> (-datoms db :avet [:db/ident eid]) first :e))
+        (-> (-datoms db :ave [:db/ident eid]) first :e))
 
     :else
     (raise "Expected number or lookup ref for entity id, got " eid
@@ -409,10 +405,10 @@
     (when-some [found (let [a (.-a datom)
                             v (.-v datom)]
                         (or
-                         (not-empty (set/slice (get db :avet)
+                         (not-empty (set/slice (get db :ave)
                                                (d/datom e0 a v tx0)
                                                (d/datom emax a v txmax)))
-                         (not-empty (-datoms db :avet [a v]))))]
+                         (not-empty (-datoms db :ave [a v]))))]
       (raise "Cannot add " datom " because of unique constraint: " found
              {:error     :transact/unique
               :attribute (.-a datom)
@@ -486,22 +482,22 @@
       (do
         (validate-datom db datom)
         (cond-> db
-          true (update :eavt set/conj datom d/cmp-datoms-eavt-quick)
-          true (update :aevt set/conj datom d/cmp-datoms-aevt-quick)
-          true (update :avet set/conj datom d/cmp-datoms-avet-quick)
-          ref? (update :vaet set/conj datom d/cmp-datoms-vaet-quick)
+          true (update :eav set/conj datom d/cmp-datoms-eavt-quick)
+          true (update :aev set/conj datom d/cmp-datoms-aevt-quick)
+          true (update :ave set/conj datom d/cmp-datoms-avet-quick)
+          ref? (update :vae set/conj datom d/cmp-datoms-vaet-quick)
           true (advance-max-eid (.-e datom))
           true (assoc :hash (atom 0))))
       (if-some [removing (first
                           (set/slice
-                           (get db :eavt)
+                           (get db :eav)
                            (d/datom (.-e datom) (.-a datom) (.-v datom) tx0)
                            (d/datom (.-e datom) (.-a datom) (.-v datom) txmax)))]
         (cond-> db
-          true (update :eavt set/disj datom d/cmp-datoms-eavt-quick)
-          true (update :aevt set/disj datom d/cmp-datoms-aevt-quick)
-          true (update :avet set/disj datom d/cmp-datoms-avet-quick)
-          ref? (update :vaet set/conj datom d/cmp-datoms-vaet-quick)
+          true (update :eav set/disj datom d/cmp-datoms-eavt-quick)
+          true (update :aev set/disj datom d/cmp-datoms-aevt-quick)
+          true (update :ave set/disj datom d/cmp-datoms-avet-quick)
+          ref? (update :vae set/conj datom d/cmp-datoms-vaet-quick)
           true (assoc :hash (atom 0)))
         db))))
 
@@ -556,10 +552,10 @@
               :assertion acc }))))
 
 (defn- upsert-reduce-fn [db eav a v]
-  (let [e (or (:e (first (set/slice (get db :avet)
+  (let [e (or (:e (first (set/slice (get db :ave)
                                     (d/datom e0 a v tx0)
                                     (d/datom emax a v txmax))))
-              (:e (first (-datoms db :avet [a v]))))]
+              (:e (first (-datoms db :ave [a v]))))]
     (cond
       (nil? e) ;; value not yet in db
       eav
@@ -646,13 +642,13 @@
         v         (if (ref? db a) (entid-strict db v) v)
         new-datom (datom e a v tx)]
     (if (multival? db a)
-      (if (empty? (or (set/slice (get db :eavt)
+      (if (empty? (or (set/slice (get db :eav)
                                  (datom e a v tx0)
                                  (datom e a v txmax))
                       (-search db [e a v])))
         (transact-report report new-datom)
         report)
-      (if-some [^Datom old-datom (or (first (set/slice (get db :eavt)
+      (if-some [^Datom old-datom (or (first (set/slice (get db :eav)
                                                        (datom e a nil tx0)
                                                        (datom e a nil txmax)))
                                      (first (-search db [e a])))]
@@ -773,12 +769,12 @@
                      (if-some [ident (or (:e
                                           (first
                                            (set/slice
-                                            (get db :aevt)
+                                            (get db :aev)
                                             (d/datom e0 op nil tx0)
                                             (d/datom emax op nil txmax))))
                                          (entid db op))]
                        (let [fun  (or (-> (set/slice
-                                           (get db :eavt)
+                                           (get db :eav)
                                            (d/datom ident :db/fn nil tx0)
                                            (d/datom ident :db/fn nil txmax))
                                           first :v)
@@ -805,7 +801,7 @@
                            _             (validate-val nv entity)
                            datoms        (clojure.set/union
                                           (set/slice
-                                           (get db :eavt)
+                                           (get db :eav)
                                            (datom e a nil tx0)
                                            (datom e a nil txmax))
                                           (-search db [e a]))]
@@ -836,11 +832,11 @@
                                            (or (:e
                                                 (first
                                                  (set/slice
-                                                  (get db :avet)
+                                                  (get db :ave)
                                                   (d/datom e0 a v tx0)
                                                   (d/datom emax a v txmax))))
                                                (:e (first
-                                                    (-datoms db :avet [a v])))))
+                                                    (-datoms db :ave [a v])))))
                            allocated-eid (get tempids e)]
                        (if (and upserted-eid allocated-eid (not= upserted-eid allocated-eid))
                          (retry-with-tempid initial-report report initial-es e upserted-eid)
@@ -857,7 +853,7 @@
                          (validate-val v entity)
                          (if-some [old-datom (or
                                               (first (set/slice
-                                                      (get db :eavt)
+                                                      (get db :eav)
                                                       (datom e a v tx0)
                                                       (datom e a v txmax)))
                                               (first (-search db [e a v])))]
@@ -871,7 +867,7 @@
                        (let [_      (validate-attr a entity)
                              datoms (vec
                                      (concat
-                                      (set/slice (get db :eavt)
+                                      (set/slice (get db :eav)
                                                  (datom e a nil tx0)
                                                  (datom e a nil txmax))
                                       (-search db [e a])))]
@@ -884,13 +880,13 @@
                      (if-some [e (entid db e)]
                        (let [e-datoms (vec
                                        (concat
-                                        (set/slice (get db :eavt)
+                                        (set/slice (get db :eav)
                                                    (datom e nil nil tx0)
                                                    (datom e nil nil txmax))
                                         (-search db [e])))
                              v-datoms (vec
                                        (concat
-                                        (set/slice (get db :vaet)
+                                        (set/slice (get db :vae)
                                                    (datom e0 nil e tx0)
                                                    (datom emax nil e txmax))
                                         (-search db [nil nil e])))]

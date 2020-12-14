@@ -41,7 +41,7 @@
                              nil
                              [:db/add 3 :attr 4]]))]
       (is (= [[1 :attr 2], [3 :attr 4]]
-             (map (juxt :e :a :v) (d/datoms db :eavt)))))))
+             (map (juxt :e :a :v) (d/datoms db :eav)))))))
 
 (deftest test-with-2
   (let [db (-> (d/empty-db nil {:aka {:db/cardinality :db.cardinality/many}})
@@ -66,7 +66,7 @@
       (is (= #{[1 :age 17]
                [1 :aka "x"]
                [1 :name "Oleg"]}
-             (set (map (juxt :e :a :v) (d/datoms db :eavt))))))))
+             (set (map (juxt :e :a :v) (d/datoms db :eav))))))))
 
 (deftest test-with-datoms-2
   (testing "retraction"
@@ -76,7 +76,7 @@
                              (d/datom 1 :name "Oleg" tx0 false)]))]
       (is (= #{[1 :age 17]}
              (set (map (juxt :e :a :v)
-                       (d/datoms db :eavt))))))))
+                       (d/datoms db :eav))))))))
 
 (deftest test-retract-fns-1
   (let [db (-> (d/empty-db nil {:aka    {:db/cardinality :db.cardinality/many}
@@ -167,7 +167,7 @@
 (deftest test-retract-fns-not-found
   (let [db  (-> (d/empty-db nil {:name {:db/unique :db.unique/identity}})
                 (d/db-with [[:db/add 1 :name "Ivan"]]))
-        all #(vec (d/datoms % :eavt))]
+        all #(vec (d/datoms % :eav))]
     (are [op] (= [(d/datom 1 :name "Ivan")]
                  (all (d/db-with db [op])))
               [:db/retract 2 :name "Petr"]
@@ -434,7 +434,7 @@
   (let [es   [{:db/id -1 :company "IBM" :country "US"}
               {:db/id -2 :company "PwC" :country "Germany"}]
         db   (d/db-with (d/empty-db) es)
-        dts1 (d/datoms db :eavt)
+        dts1 (d/datoms db :eav)
         db   (d/db-with (d/empty-db) es)
-        dts2 (d/datoms db :eavt)]
+        dts2 (d/datoms db :eav)]
     (is (= dts1 dts2))))

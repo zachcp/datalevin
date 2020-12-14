@@ -493,13 +493,9 @@
   [x x-type]
   (case x-type
     :eav   (indexable->retrieved x)
-    :eavt  (indexable->retrieved x)
     :aev   (indexable->retrieved x)
-    :aevt  (indexable->retrieved x)
     :ave   (indexable->retrieved x)
-    :avet  (indexable->retrieved x)
     :vae   (indexable->retrieved x)
-    :vaet  (indexable->retrieved x)
     x))
 
 (defn- get-eav
@@ -622,13 +618,9 @@
      :datom   (put-datom bf x)
      :bitmap  (put-bitmap bf x)
      :eav     (put-eav bf x)
-     :eavt    (put-eav bf x)
      :aev     (put-aev bf x)
-     :aevt    (put-aev bf x)
      :ave     (put-ave bf x)
-     :avet    (put-ave bf x)
      :vae     (put-vae bf x)
-     :vaet    (put-vae bf x)
      (put-data bf x))))
 
 (defn read-buffer
@@ -680,11 +672,7 @@
      :datom   (get-datom bf)
      :bitmap  (get-bitmap bf)
      :eav     (get-eav bf)
-     :eavt    (get-eav bf)
      :aev     (get-aev bf)
-     :aevt    (get-aev bf)
      :ave     (get-ave bf)
-     :avet    (get-ave bf)
      :vae     (get-vae bf)
-     :vaet    (get-vae bf)
      (get-data bf))))

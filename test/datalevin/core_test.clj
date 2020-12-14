@@ -121,7 +121,7 @@
           :sales/top-product-use "CRM",
           :sales/total           23}]]
     (sut/transact! conn txs)
-    (is (= 83 (count (sut/datoms @conn :eavt))))
+    (is (= 83 (count (sut/datoms @conn :eav))))
     (is (= (sut/q '[:find [?v ...]
                     :in $ ?a
                     :where
@@ -157,6 +157,6 @@
     (is (= (sut/schema conn) (merge schema schema-update)))
     (sut/close conn)
     (let [conn' (sut/create-conn dir)]
-      (is (= 83 (count (sut/datoms @conn' :eavt))))
+      (is (= 83 (count (sut/datoms @conn' :eav))))
       (is (= (sut/schema conn') (merge schema schema-update)))
       (sut/close conn'))))

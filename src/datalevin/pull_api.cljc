@@ -153,15 +153,15 @@
   [db spec eid frames]
   (let [[attr-key opts] spec]
     (if (= :db/id attr-key)
-      (if (db/-populated? db :eavt [eid])
+      (if (db/-populated? db :eav [eid])
         (conj (rest frames)
               (update (first frames) :kvps assoc! :db/id eid))
         frames)
       (let [attr     (:attr opts)
             forward? (= attr-key attr)
             results  (if forward?
-                       (db/-datoms db :eavt [eid attr])
-                       (db/-datoms db :avet [attr eid]))]
+                       (db/-datoms db :eav [eid attr])
+                       (db/-datoms db :ave [attr eid]))]
         (pull-attr-datoms db attr-key attr eid forward?
                           results opts frames)))))
 
@@ -210,7 +210,7 @@
 
 (defn- pull-wildcard-expand
   [db frame frames eid pattern]
-  (let [datoms (group-by (fn [d] (.-a ^Datom d)) (db/-datoms db :eavt [eid]))
+  (let [datoms (group-by (fn [d] (.-a ^Datom d)) (db/-datoms db :eav [eid]))
         {:keys [attr recursion]} frame
         rec (cond-> recursion
               (some? attr) (push-recursion attr eid))]

@@ -124,13 +124,9 @@
 (defn- index->dbi
   [index]
   (case index
-    :eavt c/eav
     :eav  c/eav
-    :aevt c/aev
     :aev  c/aev
-    :avet c/ave
     :ave  c/ave
-    :vaet c/vae
     :vae  c/vae))
 
 (defn- retrieved->datom
@@ -426,6 +422,7 @@
      (lmdb/open-dbi lmdb c/giants c/+id-bytes+)
      (lmdb/open-dbi lmdb c/schema c/+max-key-size+)
      (lmdb/open-dbi lmdb c/classes c/+short-id-bytes+)
+     (lmdb/open-dbi lmdb c/links (* c/+id-bytes+ 2))
      (let [schema' (init-schema lmdb schema)]
        (->Store lmdb
                 schema'
