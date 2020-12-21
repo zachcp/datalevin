@@ -31,8 +31,7 @@ Object join is implicit by value unification, whereas in EAV stores, these are
 explicit.  First, the entities are explicitly defined during transactions in EAV
 stores; second, the entity vs. entity relationship is also explicitly marked by
 `:db.type/ref` value type. Concequently, unlike in RDF stores, expensive
-algorithms to discover entities (e.g. characteristic sets [3])  and their
-relationship (e.g. extended characteristic sets [2]) can be made cheaper. We
+algorithms to discover entities and their relationship become unnecessary. We
 will exploit these for indexing.
 
 On the other hand, RDF stores often have a very limited number of properties
@@ -47,7 +46,7 @@ Based on these observations, we introduce two new type of indices.
 ### Entity classes
 
 First we introduce a concept of entity class, which refers to the type of
-entities. Similar to characteristic sets [3] in RDF stores or table columns in
+entities. Similar to characteristic sets [8] in RDF stores or tables in
 relational DB,  this concept captures the defining combination of attributes for
 a class of entities.
 
@@ -88,7 +87,7 @@ of of the option map given when openning the DB.
 
 We further introduce a notion of entity class link that represents a pair of entity
 classes that are connected by triples with `:db.type/ref` type attributes.
-Similar to extended characteristic sets [1] or foreign key relation in
+Similar to extended characteristic sets [7] or foreign key relation in
 relational DB, this concept captures the long range relationship in the EAV
 data. We will leverage such declaration to infer the links between entity
 classes in the data, and store the resulting graph.
@@ -142,12 +141,12 @@ The results of the sub-queries are then joined together.
 For joins within a sub-query, we start with clause with least cardinality.
 "classes" and "links" based index scans will also participate in this search for
 least cardinality calculation as if they are normal pattern clauses, as they may not be
-the cheapest.  This addresses the limitation of [2], which does not have other indices.
+the cheapest.  This addresses the limitation of [7], which does not have other indices.
 
 ### Pivot scan
 
 For large number of local star-like attributes, the engine will also consider
-pivot scan [1] that returns multiple attribute values in a single index scan,
+pivot scan [2] that returns multiple attribute values in a single index scan,
 because after the most selective attributes have been joined together to reach a
 low enough tuple count, it might be cheaper to obtain remaining attributes with
 a pivot scan than match-and-join them.
@@ -170,20 +169,20 @@ best.  It should be used as much as possible when the condition meets. Nested
 loop join works well when tuple counts are small.  Hash join can be used when
 neither cases are suitable.
 
-Recently, worst-case optimal multi-way join algorithms are proposed [0] and have
-been implemented in some commercial DBs, e.g. LogicBlox [4]. Such join algorithms
-has also begun to be tried in RDF cases [2]. In essence, these multi-way algorithms do nested
+Recently, worst-case optimal multi-way join algorithms are proposed [1] and have
+been implemented in some commercial DBs [10]. Such join algorithms
+has also begun to be tried in RDF cases [4]. In essence, these multi-way algorithms do nested
 joins one tuple at a time to avoid materializing data that would not be in
 the results. Though optimal for the worst-case, they may not perform better in
 practice, e.g. when joins are selective. They are good at dealing with cases of
-growing intermediate results [2] for join variables (but not lonely variables).
+growing intermediate results [3] for join variables (but not lonely variables).
 So the engine collapses multiple pair-wise joins into one multi-way join when it estimates that
 the cardinality of intermediate results will be greater than that of the largest of the
 participating relations, e.g. as often the case in those involving value-value joins.
 
 ## A* search style query evaluation
 
-As a major break from the traditional Selinger style query planners [7], where dynamic programming
+As a major break from the traditional Selinger style query planners [9], where dynamic programming
 based query planning is done ahead of query execution, our query engine works more
 like an A* search algorithm, where planning and execution happen in tandem. The main
 reason is to be able to obtain more accurate cost estimation during query execution, rather
@@ -218,31 +217,30 @@ each level corresponds to a variable.
 
 ## Reference
 
-[0] Atserias, Albert, Martin Grohe, and Dániel Marx. "Size bounds and query
+[1] Atserias, Albert, Martin Grohe, and Dániel Marx. "Size bounds and query
 plans for relational joins." 49th Annual IEEE Symposium on Foundations of
 Computer Science. 2008.
 
-[1] Brodt, Andreas, Oliver Schiller, and Bernhard Mitschang. "Efficient resource
+[2] Brodt, Andreas, Oliver Schiller, and Bernhard Mitschang. "Efficient resource
 attribute retrieval in RDF triple stores." Proceedings of the 20th ACM
 international conference on Information and knowledge management (CIKM). 2011.
 
-[2] Freitag, M., Bandle, M., Schmidt, T., Kemper, A., & Neumann, T. (2020). Combining worst-case optimal and traditional binary join processing.
+[3] Freitag, M., Bandle, M., Schmidt, T., Kemper, A., & Neumann, T. (2020). Combining worst-case optimal and traditional binary join processing.
 
-
-[2] Hogan, Aidan, et al. "A Worst-Case Optimal Join Algorithm for SPARQL." International Semantic Web Conference. Springer, Cham, 2020.
-
-[2] Meimaris, Marios, et al. "Extended characteristic sets: graph indexing for
-SPARQL query optimization." IEEE 33rd International Conference on Data
-Engineering (ICDE). 2017.
-
-[3] Neumann, Thomas, and Guido Moerkotte. "Characteristic sets: Accurate
-cardinality estimation for RDF queries with multiple joins." IEEE 27th
-International Conference on Data Engineering (ICDE). 2011.
-
-[4] Veldhuizen, Todd L. "Leapfrog triejoin: A simple, worst-case optimal join algorithm." EDBT/ICDT (2012).
+[4] Hogan, Aidan, et al. "A Worst-Case Optimal Join Algorithm for SPARQL." International Semantic Web Conference. Springer, Cham, 2020.
 
 [5] Leis, Viktor, et al. "How good are query optimizers, really?." Proceedings of the VLDB Endowment 9.3 (2015): 204-215.
 
 [6] Leis, Viktor, et al. "Cardinality Estimation Done Right: Index-Based Join Sampling." Cidr. 2017.
 
-[7] Selinger, P. Griffiths, et al. "Access path selection in a relational database management system." Proceedings of the 1979 ACM SIGMOD international conference on Management of data. 1979.
+[7] Meimaris, Marios, et al. "Extended characteristic sets: graph indexing for
+SPARQL query optimization." IEEE 33rd International Conference on Data
+Engineering (ICDE). 2017.
+
+[8] Neumann, Thomas, and Guido Moerkotte. "Characteristic sets: Accurate
+cardinality estimation for RDF queries with multiple joins." IEEE 27th
+International Conference on Data Engineering (ICDE). 2011.
+
+[9] Selinger, P. Griffiths, et al. "Access path selection in a relational database management system." Proceedings of the 1979 ACM SIGMOD international conference on Management of data. 1979.
+
+[10] Veldhuizen, Todd L. "Leapfrog triejoin: A simple, worst-case optimal join algorithm." EDBT/ICDT (2012).
