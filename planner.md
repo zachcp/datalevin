@@ -180,7 +180,7 @@ So the engine collapses multiple pair-wise joins into one multi-way join when it
 the cardinality of intermediate results will be greater than that of the largest of the
 participating relations, e.g. as often the case in those involving value-value joins.
 
-## A* search style query evaluation
+## A* Search Style Query Evaluation
 
 As a major break from the traditional Selinger style query planners [9], where dynamic programming
 based query planning is done ahead of query execution, our query engine works more
