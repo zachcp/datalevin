@@ -137,7 +137,7 @@ link graph, producing a set of link chains.
 
 Each chain can be considered a sub-query, and sub-queries can be processed
 by different thread in parallel, so large query can be performed more quickly on a multi-core system.
-parallel. The results of the sub-queries are then joined together.
+The results of the sub-queries are then joined together.
 
 For joins within a sub-query, we start with clause with least cardinality.
 "classes" and "links" based index scans will also participate in this search for
