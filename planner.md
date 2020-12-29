@@ -17,9 +17,9 @@ To address these problems, we will develop a new query engine that attempts to
 evaluate the query with minimal cost. We will also support an `explain` option
 for the users to see the query execution steps.
 
-This query engine will leverage some unique properties of Datomic=like stores,
+This query engine will leverage some unique properties of Datomic-like stores,
 take advantage of some new indexing structures, utilize the state of the art join
-algorithms, employ a new query execution style and does concurrent query execution.
+algorithms, employ a new query execution style and do concurrent query execution.
 
 ## Difference from RDF Stores
 
@@ -103,9 +103,6 @@ the adjacency list of the class link graph of the data, i.e. a map of links to
 the set of their adjacent links. This graph structure captures the overall structure
 of the data. We will use this graph to pre-filter entities for those complex
 queries spanning multiple related entity classes.
-
-We build the entity classes and links structures described above incrementally
-during data transactions, instead of having to build them using expensive
 algorithms to go through full data set.
 
 ## Optimizations
@@ -118,7 +115,7 @@ Our engine will first leverage the entity classes and the links between them
 to generate the skeleton of the execution plan.  Essentially, we leverage the
 set of attributes and their relationships in the query to:
 
-    a. break up the query into sub-queries that can be independently executed,
+    a. break up the query into sub-queries that can be independently executed.
 
     b. pre-filter the entities involved in each sub-query.
 
