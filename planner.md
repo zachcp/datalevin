@@ -103,7 +103,6 @@ the adjacency list of the class link graph of the data, i.e. a map of links to
 the set of their adjacent links. This graph structure captures the overall structure
 of the data. We will use this graph to pre-filter entities for those complex
 queries spanning multiple related entity classes.
-algorithms to go through full data set.
 
 ## Optimizations
 
