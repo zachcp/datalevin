@@ -96,7 +96,7 @@ Specifically, a "links" LMDB DBI will be used, the keys are the pair of the
 entity class ids of the referring entity class (class of E) and the referred
 entity class (class of V), the values are bitmaps of entity ids of
 referred entities (V), so that we can look up the link triples quickly in the
-"VAE" LMDB DBI, which contains link triples only.
+"VEA" LMDB DBI, which contains link triples only.
 
 In addition, the schema map has a built-in key `:db/graph`, and its value stores
 the adjacency list of the class link graph of the data, i.e. a map of links to
