@@ -44,6 +44,12 @@ jobs:
 
       - name: Build datalevin
         run: |
-          gu install native-image
           cd native
           bash script/compile
+
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v2
+        with:
+          path: dtlv
+          name: datalevin-${{ matrix.os }}-latest.zip
